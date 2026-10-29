@@ -2,6 +2,10 @@
 
 A job-search workspace with real discovery, persistent accounts, resume review and reviewed application preparation. React + Vite + TypeScript + Tailwind + Framer Motion frontend; Node/Express + SQLite backend. Includes subscription/admin controls and optional local or hosted AI. No paid service is activated.
 
+## Cloud hosting status
+
+Source is uploaded to the requested GitHub repository. The selected Render workspace currently refuses new services because its free quota is exhausted. An empty Turso Free database is created but not connected; this release intentionally rejects ephemeral Render SQLite deployment. See [current hosting status](docs/CLOUD-STATUS.md). No public app deployment is live.
+
 ## Run locally
 
 Requires Node 24.15+ and npm. This build was checked with Node 24.18.0. Fonts are served locally.

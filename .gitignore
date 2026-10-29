@@ -15,3 +15,5 @@ coverage/
 build/
 backups/
 .env.production
+
+artifacts/
