@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.playwright-mcp/
+test-results/
+playwright-report/
+.env*
+!.env.example
+
+data/
+*.sqlite
+*.sqlite-*
+coverage/
+
+build/
+backups/
+.env.production

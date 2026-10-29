@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: ..
+    env_file: ../.env.production
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      TRUST_PROXY: '1'
+      JOB_HUNTER_DB: /app/data/job-hunter.sqlite
+    volumes:
+      - job_hunter_data:/app/data
+      - job_hunter_backups:/app/backups
+    restart: unless-stopped
+    stop_grace_period: 30s
+    expose:
+      - '3001'
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+  proxy:
+    image: caddy:2-alpine
+    env_file: ../.env.production
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  job_hunter_data:
+  job_hunter_backups:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Job-Hunter \u00b7 Application Assistant",
+  "version": "0.1.0",
+  "description": "Fill basic contact fields from your Job-Hunter profile, only when you ask. Never submits applications.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://127.0.0.1:3001/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Job-Hunter application assistant"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  },
+  "optional_host_permissions": ["https://*/*"]
+}

@@ -1,0 +1,4 @@
+# Job-Hunter design direction
+Approved 2026-10-29. Charcoal #151714, olive-charcoal #22261F, white #F5F6EF, butter yellow #F3D86A. Fraunces display with Manrope UI. Dark first with light toggle. Restrained palette in the working product; expressive kinetic landing page. Frosted navigation and selected preview surfaces; glossy yellow actions, small inset controls, subtle aurora and grain. A person reviewing opportunities after work should find focus, warmth and a clear next action.
+
+Shared tokens live in src/theme.css. Motion values live in src/motion.ts. Use 4px spacing increments, 12–16px card corners, 44px touch targets. Keep glass effects bounded. Reduced motion removes spatial and ambient effects. User-approved build sequence supersedes additional skill mock approval gates; no billable image generation is authorized.

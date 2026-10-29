@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Job-Hunter assistant</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header><span class="logo">jh</span><strong>Job-Hunter</strong></header>
+    <h1>A little less repetition.</h1>
+    <p>
+      Connect your profile, then fill empty contact fields on the current page. Review every answer
+      before submitting.
+    </p>
+    <label for="origin">Workspace origin</label
+    ><input
+      id="origin"
+      type="url"
+      value="http://127.0.0.1:3001"
+      autocomplete="off"
+      placeholder="https://jobs.example.com"
+    />
+    <label for="token">Connection token</label
+    ><input
+      id="token"
+      type="password"
+      autocomplete="off"
+      placeholder="From Workspace → Settings"
+    /><small
+      >Kept only for this browser session. Use your trusted workspace domain. The server must be
+      running.</small
+    ><button id="connect">Connect profile</button>
+    <section id="connected" hidden>
+      <p id="identity"></p>
+      <button id="fill">Fill contact fields on this page</button
+      ><button id="disconnect" class="secondary">Disconnect</button>
+    </section>
+    <p id="status" role="status"></p>
+    <footer>
+      Only name, email, phone, location and profile links. No overwriting, file uploads, demographic
+      answers or submissions.
+    </footer>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

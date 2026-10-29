@@ -1,0 +1,9 @@
+Alex Example | alex@example.test | +91 9876543210
+EXPERIENCE
+Built accessible React components for 100 users.
+EDUCATION
+Computer Science
+SKILLS
+React TypeScript SQL
+PROJECTS
+Built 3 projects.

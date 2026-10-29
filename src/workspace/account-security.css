@@ -1,0 +1,162 @@
+.account-recovery {
+  padding: 36px clamp(20px, 6vw, 90px);
+  min-height: 100dvh;
+}
+.account-recovery > .ws-logo {
+  width: fit-content;
+}
+.account-recovery-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: clamp(35px, 7vw, 110px);
+  max-width: 1100px;
+  margin: 90px auto 50px;
+}
+.account-recovery-story h1 {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: clamp(40px, 4.8vw, 64px);
+  font-weight: 450;
+  line-height: 1.13;
+  letter-spacing: -0.045em;
+  margin: 20px 0;
+}
+.account-recovery-story > p:not(.ws-eyebrow) {
+  max-width: 370px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.account-security-note {
+  display: flex;
+  gap: 13px;
+  margin-top: 40px;
+  align-items: flex-start;
+  max-width: 350px;
+  color: var(--muted);
+}
+.account-security-note svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--accent);
+}
+.account-security-note p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0;
+}
+.account-recovery-card {
+  padding: 34px !important;
+}
+.account-security-icon {
+  display: grid;
+  place-items: center;
+  width: 55px;
+  height: 55px;
+  border-radius: 16px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  margin-bottom: 22px;
+}
+.account-recovery-card h2 {
+  font-size: 25px;
+  margin-bottom: 14px;
+}
+.account-recovery-card form > p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--muted);
+  margin-bottom: 22px;
+}
+.account-recovery-card .ws-button {
+  justify-content: center;
+  width: 100%;
+  min-height: 46px;
+}
+.account-recovery-card .ws-text-button {
+  display: block;
+  margin: 16px auto 0;
+  text-align: center;
+}
+.account-back-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 25px;
+  font-size: 12px;
+  color: var(--muted);
+  width: fit-content;
+}
+.account-security-message {
+  line-height: 1.9;
+  color: var(--muted);
+  margin-bottom: 25px;
+}
+.account-verification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  border-radius: 12px;
+  padding: 20px;
+}
+.account-verification-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+.account-verification-copy > svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.account-verification strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+.account-verification p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 0;
+  line-height: 1.8;
+}
+.account-verification > .ws-button {
+  flex-shrink: 0;
+}
+.account-verification .ws-error {
+  color: var(--ink);
+  font-weight: 550;
+}
+@media (max-width: 760px) {
+  .account-recovery-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin: 50px auto 20px;
+    max-width: 470px;
+  }
+  .account-recovery-story h1 {
+    font-size: 42px;
+  }
+  .account-security-note {
+    display: none;
+  }
+  .account-recovery-card {
+    padding: 24px !important;
+  }
+  .account-verification {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+  .account-verification > .ws-button {
+    align-self: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-recovery .ws-spin,
+  .account-verification .ws-spin {
+    animation: none;
+  }
+}

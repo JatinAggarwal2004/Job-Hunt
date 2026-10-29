@@ -1,0 +1,33 @@
+# Job-Hunter verification — 29 October 2026
+
+## Current implementation
+
+- `npm run check`: passed. Frontend and backend types/build, executable backend bundle, formatting, and **42 API tests** passed.
+- `npm run test:e2e`: **8 Chrome browser tests passed in 41.2 seconds**, using one worker for the final run. Real running bundled API, isolated QA databases, live public discovery and actual document fixtures; no QA accounts inserted into the main installation.
+- Browser coverage: landing/reduced motion/storage failure; profile → live discovery → tracker → resume → admin → assistant; mobile screens including Membership/Admin in both themes; admin price confirmation, complimentary access, blocking/unblocking an existing signed-in user, global free mode; assistant domain-permission and invalid-origin handling with a mocked Chrome API. No horizontal overflow/axe WCAG A/AA findings in tested workspace states at 375px, with overview additionally checked at 820/1440px.
+- Backend coverage: auth and ownership, restart persistence/scheduling, source failures/adapters, text extraction and optional edits; transactional five-successful-scan limit and failed/restart refunds; blocked precedence, admin authorization and existing extension-token checks; signed/deduplicated raw Razorpay events, authoritative captured-payment matching, refund/out-of-order/cancel/price/free-mode behavior; checkout interruption and block/cancel races; secure production configuration, explicit admin bootstrap, email verification/password recovery/session revocation; Gemini consent/configuration/limits and validated drafts; worker lease ownership/handover.
+- Document isolation: **8 of the 42 API tests** exercise real PDF/DOCX/TXT extraction, malformed inputs, concurrency, empty/scanned content, external-link non-fetching, inflated ZIP limits and PDF page limits. Worker limits do not constitute an OS sandbox.
+- Payments: **17 of the 42 API tests** use provider fixtures, including cancellation confirmation and concurrent blocking. No merchant API calls, transactions, real invoices or live webhook deliveries occurred. No client redirect grants access.
+- AI: controlled provider responses exercise the real request adapter and draft validator. **No real Ollama/Gemini inference occurred.** Neither a model nor credentials is configured here.
+- `npm audit --omit=dev`: **0 vulnerabilities reported**. Pattern scan of source/shared/extension/deployment/sample config found no real-key/private-key patterns. Fixture credentials are deliberately fictional.
+- `JOB_HUNTER_DB=data/e2e.sqlite npm run backup`: created a private snapshot and passed SQLite integrity verification. `npm run verify:deployment` returned local health/readiness 200, while reporting paymentsConfigured false and aiEnabled false.
+- Extension ZIP regenerated from all six reviewable source files, including explicit HTTPS workspace-domain permission. Controlled form fill is tested; real Chrome extension installation/public-domain permissions/employer ATS flows still require manual smoke testing.
+- Actual Simplify REA homepage capture succeeded: complete DOM/accessibility/screenshot with 168 network metadata events. Deeper navigation retry timed out and is retained as a failure, with owned-browser cleanup confirmed. See `docs/rea-benchmark.md` and unmodified Evidence under `docs/rea-simplify/`.
+
+Earlier desktop Lighthouse scores (99 performance/100 accessibility/96 best practices/100 SEO for signup) predate the monetization screens; they are not measurements of every current page. The current frontend retains lazy workspace loading and local fonts. No new Lighthouse score is claimed.
+
+## Launch checks still unverified
+
+Real merchant sandbox capture/renewal/refund/cancellation/webhook delivery; SMTP delivery on the public domain; configured-model quality/latency and provider spending limits; HTTPS deployment/session/account-isolation checks; monitoring and off-host backup/restore drill. Docker daemon was unavailable, so the supplied Docker/Caddy recipe was not executed. No public hosting or billable resources were provisioned. These are explicit launch gates, not completed production certification.
+
+## Final rerun
+
+Monetization baseline browser rerun: **7/7 passed in 26.9 seconds**. Current API/build/format checks: **42/42 passed**. Rebuilt local server restarted; health/readiness both 200, with payment/AI activation explicitly false.
+
+## Activity tracking checks
+
+Three new API checks exercise strict session-owned ingestion, admin/blocked-account guards, deduplication, authoritative counts and no beacon-driven usage inflation; run/request linkage and content exclusion; missed/hidden/idle and multiple-tab presence; retention/pause boundaries and preserved run history. Admin access events identify actor and affected user. Final build/type/format and API rerun: 42/42 passed. Browser check verifies a unique signed-in account’s real beacon, actual scan totals/history and request ID, simulated six-minute inactivity, and admin pause/retention controls. Anonymous visitor tracking and external employer activity are outside this feature.
+
+Browser stability note: an eight-test run passed in34.1s, but other full runs encountered intermittent stalls in loading/axe/billing checks while the dedicated activity flow passed. Final single-worker rerun is recorded separately; do not treat a prior successful run as proof that these stalls never occur.
+
+Final activity build verification: npm run check passed with42/42 API tests. `/usr/bin/caffeinate -i npm run test:e2e` passed **8/8 in41.2s** with a single worker. The bounded wake lock ended with the test command. This successful rerun does not establish the cause of prior intermittent stalls; the suite now uses one worker to reduce contention. No change to production activation gates.
