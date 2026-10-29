@@ -4,7 +4,7 @@ A job-search workspace with real discovery, persistent accounts, resume review a
 
 ## Cloud hosting status
 
-Source is uploaded to the requested GitHub repository. The selected Render workspace currently refuses new services because its free quota is exhausted. An empty Turso Free database is created but not connected; this release intentionally rejects ephemeral Render SQLite deployment. See [current hosting status](docs/CLOUD-STATUS.md). No public app deployment is live.
+The [hosted beta](https://job-hunt-production-c65f.up.railway.app) runs on Railway Free with a persistent SQLite volume. Health and browser smoke checks pass, including database retention across a real redeployment. Email delivery, payments and hosted AI still require configuration and live validation; registration remains closed until email is configured. See [current hosting status](docs/CLOUD-STATUS.md) and [Railway setup](deploy/RAILWAY.md).
 
 ## Run locally
 

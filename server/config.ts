@@ -1,6 +1,8 @@
 import { z } from 'zod'
 export function runtimeConfig(env: NodeJS.ProcessEnv = process.env) {
   const production = env.NODE_ENV === 'production'
+  if (env.RAILWAY_ENVIRONMENT_ID && !production)
+    throw Error('Railway deployments must set NODE_ENV=production before the API can start.')
   const origin = new URL(
     env.APP_ORIGIN ||
       (production && env.RENDER === 'true' ? env.RENDER_EXTERNAL_URL || '' : '') ||

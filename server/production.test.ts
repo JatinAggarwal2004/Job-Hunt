@@ -331,3 +331,11 @@ test('Render Free fails closed before opening an ephemeral SQLite database', () 
     /cannot run on Render Free/,
   )
 })
+
+test('Railway cannot expose development authentication defaults', () => {
+  for (const NODE_ENV of [undefined, 'development', 'test'])
+    assert.throws(
+      () => runtimeConfig({ RAILWAY_ENVIRONMENT_ID: 'fixture', NODE_ENV }),
+      /must set NODE_ENV=production/,
+    )
+})

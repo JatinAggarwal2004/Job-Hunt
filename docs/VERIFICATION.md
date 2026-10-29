@@ -31,3 +31,12 @@ Three new API checks exercise strict session-owned ingestion, admin/blocked-acco
 Browser stability note: an eight-test run passed in34.1s, but other full runs encountered intermittent stalls in loading/axe/billing checks while the dedicated activity flow passed. Final single-worker rerun is recorded separately; do not treat a prior successful run as proof that these stalls never occur.
 
 Final activity build verification: npm run check passed with42/42 API tests. `/usr/bin/caffeinate -i npm run test:e2e` passed **8/8 in41.2s** with a single worker. The bounded wake lock ended with the test command. This successful rerun does not establish the cause of prior intermittent stalls; the suite now uses one worker to reduce contention. No change to production activation gates.
+
+
+## Hosted beta verification — 30 October 2026
+
+- `npm run check`:50 API tests passed, build/types/format passed. New checks cover Railway's production-mode requirement, absent/outside/symlink-escaped volumes, local file restart persistence and Brevo HTTPS verification/failure handling. Brevo responses are simulated; no real mail was sent.
+- Actual Railway Free account activated without a card; real Docker deployment logs show `/app/data` volume mounted and runtime UID1000. A marker written through the running-container console survived a replacement container (399bfae6 →6d19e61b); SQLite `PRAGMA quick_check` returned `ok`. No user/resume data was uploaded to perform this check.
+- Public `/` and `/app`:200 HTML; `/api/health`:200; `/api/admin` and `/api/profile` unauthenticated:401; production registration without email:503 before any account creation. `/api/ready`:503 with `email_delivery` and `payment_gateway`, honestly reflecting missing integrations.
+- Real browser rendered the public landing and workspace sign-in screen; theme toggled both ways and workflow preview switched to Refine. Existing local8-test browser baseline is unchanged; no new claim of a full authenticated hosted end-to-end pass.
+- The earlier statement that no public resources were provisioned describes the29 October checkpoint. The beta is now provisioned at https://job-hunt-production-c65f.up.railway.app; mail/payment/AI, full authenticated hosted flows and off-host restore remain launch gates.
