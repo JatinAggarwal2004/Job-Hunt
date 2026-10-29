@@ -1,4 +1,4 @@
-# Cloud deployment status — 29 October 2026
+# Cloud deployment status — 30 October 2026
 
 ## Completed
 
@@ -15,10 +15,16 @@ The Render connector rejected creation of a new service on the confirmed workspa
 
 No Job-Hunter service or public application URL was created. Existing services were not modified. No paid upgrade, card change or paid service was authorized or performed. [Render's current free-tier rules](https://render.com/docs/free) describe the monthly shared quota and data-loss/sleep restrictions.
 
+## Replacement host under evaluation
+
+The user chose another free host rather than waiting for Render. **Northflank Sandbox is the current beta candidate**, not a deployed application. Its [pricing page](https://northflank.com/pricing) lists no card required, always-on services, two services, two jobs and one database within its free allowance. Its [billing documentation](https://northflank.com/docs/v1/application/billing/pricing-on-northflank) advises against production applications on the free tier. This is therefore not a production-hosting approval.
+
+The signup dashboard initially stayed on “Connecting”, then recovered to the signup form. Account setup is pending with the owner because it requires accepting the provider's terms. No Northflank account, project, volume or service was created by this deployment attempt. Persistent volumes have published usage rates; a zero-cost durable storage allocation has **not** been verified. Do not provision a paid volume or deploy the existing SQLite app on ephemeral disk.
+
 ## Still required
 
-Choose whether to wait for Render's free quota reset/account restriction resolution or use a different free compute host. The durable database adapter/migration, database credential provisioning and HTTPS email adapter still need implementation and end-to-end validation. The app's current SMTP transport is blocked by Render Free, and its SQLite database cannot be stored durably there. Supplying a Turso URL alone does not make this release cloud-ready; the deliberate startup guard must only be replaced by a tested durable path.
+Verify the account's actual free eligibility and a durable storage path before provisioning. The durable database adapter/migration, database credential provisioning and HTTPS email adapter still need implementation and end-to-end validation. The app's current SMTP transport is blocked by Render Free, and its SQLite database cannot be stored durably there. Supplying a Turso URL alone does not make this release cloud-ready; the deliberate startup guard must only be replaced by a tested durable path.
 
-After integration, verify a fresh account and owner bootstrap, email verification/recovery, successful/failed scan accounting, resume processing, admin/activity isolation and retained data across a service restart. Verify the payment sandbox and configured model before advertising those features. Free compute sleeps, so exact always-on scheduled runs are not guaranteed. Refer to PRODUCTION.md for the remaining launch checks.
+After integration, verify a fresh account and owner bootstrap, email verification/recovery, successful/failed scan accounting, resume processing, admin/activity isolation and retained data across a service restart. Verify the payment sandbox and configured model before advertising those features. Host availability and free quotas constrain schedules; exact always-on scheduled runs are not guaranteed. Refer to PRODUCTION.md for the remaining launch checks.
 
 Sources: [Vercel Hobby usage](https://vercel.com/docs/plans/hobby), [Render Free limitations](https://render.com/docs/free), [Turso Free plan](https://turso.tech/pricing). These describe current limits, not a guarantee that a provider will offer free production hosting indefinitely.
