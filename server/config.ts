@@ -1,7 +1,11 @@
 import { z } from 'zod'
 export function runtimeConfig(env: NodeJS.ProcessEnv = process.env) {
   const production = env.NODE_ENV === 'production'
-  const origin = new URL(env.APP_ORIGIN || 'http://127.0.0.1:5173')
+  const origin = new URL(
+    env.APP_ORIGIN ||
+      (production && env.RENDER === 'true' ? env.RENDER_EXTERNAL_URL || '' : '') ||
+      'http://127.0.0.1:5173',
+  )
   if (origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash)
     throw Error('APP_ORIGIN must contain only an origin')
   if (production && origin.protocol !== 'https:')
@@ -10,6 +14,10 @@ export function runtimeConfig(env: NodeJS.ProcessEnv = process.env) {
   const bootstrapEmail = (env.BOOTSTRAP_ADMIN_EMAIL || '').trim().toLowerCase()
   if (production && !z.string().email().safeParse(bootstrapEmail).success)
     throw Error('BOOTSTRAP_ADMIN_EMAIL is required in production')
+  if (production && env.RENDER === 'true')
+    throw Error(
+      'This SQLite release cannot run on Render Free without losing data. Configure the durable cloud database release before deploying; local accounts and payment records must never use ephemeral storage.',
+    )
   const port = Number(env.PORT || 3001)
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('Invalid PORT')
   const origins = new Set([origin.origin])

@@ -1,0 +1,27 @@
+# Commercial beta target: one same-origin Render service, free compute only.
+# The current SQLite release deliberately refuses ephemeral Render storage.
+# Complete the durable database adapter and HTTPS email setup before enabling signup.
+services:
+  - type: web
+    name: job-hunter
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: '1'
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: ALLOW_LIVE_PAYMENTS
+        value: 'false'
+      - key: ENABLE_HOSTED_AI
+        value: 'false'

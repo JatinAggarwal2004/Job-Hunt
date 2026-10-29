@@ -318,3 +318,16 @@ test('single instance worker lease prevents overlapping scheduler ownership and 
     db.close()
   }
 })
+
+test('Render Free fails closed before opening an ephemeral SQLite database', () => {
+  assert.throws(
+    () =>
+      runtimeConfig({
+        NODE_ENV: 'production',
+        RENDER: 'true',
+        RENDER_EXTERNAL_URL: 'https://job-hunter-test.onrender.com',
+        BOOTSTRAP_ADMIN_EMAIL: 'owner@example.test',
+      }),
+    /cannot run on Render Free/,
+  )
+})
