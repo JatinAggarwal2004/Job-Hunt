@@ -5,6 +5,7 @@ import { createActivity } from './activity.ts'
 import { createBilling } from './billing.ts'
 import { accountSecurity, type MailSender } from './accounts.ts'
 import { runtimeConfig } from './config.ts'
+import { durableDatabasePath } from './storage.ts'
 import type { Request, Response, NextFunction } from 'express'
 import multer from 'multer'
 import { extractResume } from './documents.ts'
@@ -158,7 +159,10 @@ export function createApp(
 ) {
   const env = options.env || process.env,
     config = runtimeConfig(env)
-  const path = options.dbPath || env.JOB_HUNTER_DB || 'data/job-hunter.sqlite'
+  const path = durableDatabasePath(
+    options.dbPath || env.JOB_HUNTER_DB || 'data/job-hunter.sqlite',
+    env,
+  )
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 })
   const db = new DatabaseSync(path)
   db.exec(`PRAGMA journal_mode=WAL;PRAGMA foreign_keys=ON;
