@@ -1,30 +1,25 @@
 # Cloud deployment status — 30 October 2026
 
-## Completed
+## Hosted beta
 
-- Reviewed application source uploaded to the requested GitHub repository, with local and remote commit hashes verified. Real environment files, databases, backups, local screenshots and browser captures were excluded.
-- Free-only Render blueprint added at `deploy/render-free.yaml`. The user selected a same-origin commercial beta on Render with an external database, replacing Vercel Hobby because its free plan permits personal non-commercial use only.
-- Empty `job-hunter` database created on the Turso Free plan in Singapore. No data or database token has been uploaded to the repository. It is **not connected to the application**.
-- Production configuration now refuses the current local SQLite release on Render rather than risking ephemeral account/payment data. `npm run check`: **43 API tests passed**, including that guard, plus build/types/format. Existing local operation remains available.
+Public URL: [Job-Hunter](https://job-hunt-production-c65f.up.railway.app). Railway Free deployment is active with the frontend and API on the same HTTPS origin. Public `/api/health` returned200; the real browser rendered the landing page. This is **not a complete production launch**: readiness returned503 because email delivery and payments are unconfigured. Hosted AI is disabled. Registration remains closed until email delivery is configured.
 
-## Actual hosting blocker
+The owner's existing expired Railway trial was switched to the published Free plan without adding a card. The dashboard showed $1 available. A 0.5GB persistent volume is attached at `/app/data`; runtime logs confirm the mount and unprivileged UID1000. A harmless SQLite retention marker was written on that real volume. Verification after a redeployment is still pending. Free compute sleeps, its monthly resource allowance is limited, and provider retention rules apply. No uninterrupted availability or exact scheduled-run timing is promised.
 
-The Render connector rejected creation of a new service on the confirmed workspace:
+## Source and checks
 
-> free tier usage quota has been exhausted, new services are not allowed
+Reviewed source is uploaded to the requested [GitHub repository](https://github.com/JatinAggarwal2004/Job-Hunt). Environment files, databases, backups, local screenshots and raw browser captures are excluded. The Railway guard refuses missing/outside/symlink-escaped SQLite storage. The Brevo HTTPS email adapter supports free hosts that block SMTP. Current `npm run check` passed49 API tests, build/types and formatting; email tests use simulated provider responses. No live verification mail, paid AI call or payment was sent.
 
-No Job-Hunter service or public application URL was created. Existing services were not modified. No paid upgrade, card change or paid service was authorized or performed. [Render's current free-tier rules](https://render.com/docs/free) describe the monthly shared quota and data-loss/sleep restrictions.
+Configure this service through the dashboard as documented in [deploy/RAILWAY.md](../deploy/RAILWAY.md). The actual dashboard says new services cannot opt into deprecated legacy config-as-code, so no `railway.json` is relied on.
 
-## Replacement host under evaluation
+## Other providers
 
-The user chose another free host rather than waiting for Render. **Northflank Sandbox is the current beta candidate**, not a deployed application. Its [pricing page](https://northflank.com/pricing) lists no card required, always-on services, two services, two jobs and one database within its free allowance. Its [billing documentation](https://northflank.com/docs/v1/application/billing/pricing-on-northflank) advises against production applications on the free tier. This is therefore not a production-hosting approval.
+Render rejected new free service creation because the workspace quota was exhausted; no Job-Hunter Render service was created. Existing Render services were not modified. Northflank's signed-in Free service form required a card, despite its no-card pricing headline; no card was entered and no service was created there. Vercel Hobby was excluded because its published scope is personal, non-commercial use.
 
-The signup dashboard initially stayed on “Connecting”, then recovered to the signup form. Account setup is pending with the owner because it requires accepting the provider's terms. No Northflank account, project, volume or service was created by this deployment attempt. Persistent volumes have published usage rates; a zero-cost durable storage allocation has **not** been verified. Do not provision a paid volume or deploy the existing SQLite app on ephemeral disk.
+The empty Turso Free database remains **unconnected**. No Turso token was generated or migration implemented. Railway's actual mounted disk enables the existing synchronous SQLite backend; it is not a remote Turso adapter or an off-host backup. Local application data was not uploaded.
 
-## Still required
+## Remaining launch gates
 
-Verify the account's actual free eligibility and a durable storage path before provisioning. The durable database adapter/migration, database credential provisioning and HTTPS email adapter still need implementation and end-to-end validation. The app's current SMTP transport is blocked by Render Free, and its SQLite database cannot be stored durably there. Supplying a Turso URL alone does not make this release cloud-ready; the deliberate startup guard must only be replaced by a tested durable path.
+Configure a verified transactional-email sender/private key and test signup, one-use verification and password recovery end to end. Verify owner admin access, user isolation, scan accounting and resume processing on the deployed service. Configure and test Razorpay sandbox lifecycle events and an approved AI model before enabling those features. Verify off-host backup/restore and review free-quota retention notices before accepting production users.
 
-After integration, verify a fresh account and owner bootstrap, email verification/recovery, successful/failed scan accounting, resume processing, admin/activity isolation and retained data across a service restart. Verify the payment sandbox and configured model before advertising those features. Host availability and free quotas constrain schedules; exact always-on scheduled runs are not guaranteed. Refer to PRODUCTION.md for the remaining launch checks.
-
-Sources: [Vercel Hobby usage](https://vercel.com/docs/plans/hobby), [Render Free limitations](https://render.com/docs/free), [Turso Free plan](https://turso.tech/pricing). These describe current limits, not a guarantee that a provider will offer free production hosting indefinitely.
+Sources: [Railway plans](https://docs.railway.com/pricing/plans), [Railway outbound networking](https://docs.railway.com/networking/outbound-networking), [Vercel Hobby](https://vercel.com/docs/plans/hobby), [Render Free](https://render.com/docs/free), [Northflank pricing](https://northflank.com/pricing), [Turso Free](https://turso.tech/pricing). Provider limits can change; account eligibility and the actual dashboard take precedence over a pricing headline.

@@ -155,6 +155,7 @@ export function createApp(
     worker?: boolean
     env?: NodeJS.ProcessEnv
     sendMail?: MailSender
+    mailFetcher?: typeof fetch
   } = {},
 ) {
   const env = options.env || process.env,
@@ -210,7 +211,11 @@ export function createApp(
       .all()
       .map((r: any) => JSON.parse(r.data) as Source)
   const lease = options.worker === false ? null : acquireWorkerLease(db)
-  const accounts = accountSecurity(db, { env, sendMail: options.sendMail })
+  const accounts = accountSecurity(db, {
+    env,
+    sendMail: options.sendMail,
+    mailFetcher: options.mailFetcher,
+  })
   const billing = createBilling(db, { fetcher: options.fetcher, env })
   billing.recoverReservations()
   const intelligence = createIntelligence(db, { env, fetcher: options.fetcher })
@@ -486,7 +491,7 @@ export function createApp(
   })
   app.get('/api/ready', (_req, res) => {
     const missing: string[] = []
-    if (config.production && !accounts.smtpReady) missing.push('smtp')
+    if (config.production && !accounts.mailReady) missing.push('email_delivery')
     if (config.production && billing.settings().mode === 'paid' && !billing.checkoutReady())
       missing.push('payment_gateway')
     if (!existsSync(resolve('dist/index.html'))) missing.push('frontend_build')
@@ -503,7 +508,7 @@ export function createApp(
     '/api/auth/register',
     throttle,
     route(async (req, res) => {
-      if (config.requireVerification && !accounts.smtpReady)
+      if (config.requireVerification && !accounts.mailReady)
         throw new HttpError(503, 'Email delivery must be configured before registration can open.')
       const input = z
         .object({
@@ -550,7 +555,7 @@ export function createApp(
       }
       session(res, user.id)
       let verificationMessage = ''
-      if (accounts.smtpReady)
+      if (accounts.mailReady)
         try {
           await accounts.issue(user, 'verify')
           verificationMessage = 'Check your email to verify your account.'

@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { randomBytes, createHash, scryptSync } from 'node:crypto'
 import nodemailer from 'nodemailer'
 import { z } from 'zod'
+import { httpsMailSender } from './mail.ts'
 export type OutgoingMail = { to: string; subject: string; text: string }
 export type MailSender = (mail: OutgoingMail) => Promise<void>
 class AccountError extends Error {
@@ -16,7 +17,12 @@ class AccountError extends Error {
 }
 export function accountSecurity(
   db: DatabaseSync,
-  options: { env?: NodeJS.ProcessEnv; sendMail?: MailSender; clock?: () => number } = {},
+  options: {
+    env?: NodeJS.ProcessEnv
+    sendMail?: MailSender
+    clock?: () => number
+    mailFetcher?: typeof fetch
+  } = {},
 ) {
   const env = options.env || process.env,
     clock = options.clock || Date.now
@@ -26,7 +32,10 @@ export function accountSecurity(
   db.exec(
     'CREATE TABLE IF NOT EXISTS account_tokens(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,purpose TEXT NOT NULL,expires INTEGER NOT NULL)',
   )
-  const smtpReady = Boolean(env.SMTP_HOST && env.SMTP_FROM && env.SMTP_USER && env.SMTP_PASSWORD)
+  const httpsSender = httpsMailSender(env, options.mailFetcher)
+  const smtpReady =
+    (!env.MAIL_PROVIDER || env.MAIL_PROVIDER === 'smtp') &&
+    Boolean(env.SMTP_HOST && env.SMTP_FROM && env.SMTP_USER && env.SMTP_PASSWORD)
   const transporter = smtpReady
     ? nodemailer.createTransport({
         host: env.SMTP_HOST,
@@ -42,11 +51,12 @@ export function accountSecurity(
     : null
   const sendMail: MailSender =
     options.sendMail ||
+    httpsSender ||
     (async (mail) => {
       if (!transporter)
         throw new AccountError(
           503,
-          'Email delivery is not configured. Ask the administrator to configure SMTP.',
+          'Email delivery is not configured. Ask the administrator to configure an email provider.',
         )
       await transporter.sendMail({ from: env.SMTP_FROM, ...mail })
     })
@@ -200,7 +210,7 @@ export function accountSecurity(
     publicRouter,
     privateRouter,
     issue,
-    smtpReady: smtpReady || Boolean(options.sendMail),
+    mailReady: smtpReady || Boolean(httpsSender || options.sendMail),
     settle: () => Promise.all([...deliveries]),
   }
 }
