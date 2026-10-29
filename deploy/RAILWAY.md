@@ -42,3 +42,7 @@ Do not paste keys into chat or commit them. Verify actual delivery and password 
 `npm run check` builds, checks formatting and runs the API tests. `APP_ORIGIN=https://your-host npm run verify:deployment` must report health200 and readiness200 before a complete production-readiness claim. Health200 alone confirms only a running API. Missing email/payment configuration intentionally reports readiness503. Confirm data survives a real redeployment, not only a local process restart.
 
 Sources: [plans](https://docs.railway.com/pricing/plans), [volumes](https://docs.railway.com/volumes/reference), [serverless](https://docs.railway.com/deployments/serverless), [SMTP restriction](https://docs.railway.com/networking/outbound-networking), [Brevo Free limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan).
+
+## Activated beta
+
+The current hosted beta uses a dedicated restricted Brevo key with only Transactional email access; all other resource permissions are None. Brevo's minimum send-capable permission also permits template, blocklist and log management. Its configured expiry is January 29, 2027, or after 90 days unused. Rotate it privately in Brevo/Railway before expiry; never commit the key. Owner signup/verification/admin access and verification/recovery mail delivery have been tested on the real deployment. An actual password replacement, merchant/AI activation and off-host restore are still unverified.

@@ -4,7 +4,7 @@ A job-search workspace with real discovery, persistent accounts, resume review a
 
 ## Cloud hosting status
 
-The [hosted beta](https://job-hunt-production-c65f.up.railway.app) runs on Railway Free with a persistent SQLite volume. Health and browser smoke checks pass, including database retention across a real redeployment. Email delivery, payments and hosted AI still require configuration and live validation; registration remains closed until email is configured. See [current hosting status](docs/CLOUD-STATUS.md) and [Railway setup](deploy/RAILWAY.md).
+The [hosted beta](https://job-hunt-production-c65f.up.railway.app) runs on Railway Free with a persistent SQLite volume. Health and browser smoke checks pass, including database retention across a real redeployment. Signup, email verification and owner admin access are verified; verification and recovery emails were delivered through Brevo. Payments and hosted AI remain unconfigured, and readiness reports the missing payment gateway. See [current hosting status](docs/CLOUD-STATUS.md) and [Railway setup](deploy/RAILWAY.md).
 
 ## Run locally
 
