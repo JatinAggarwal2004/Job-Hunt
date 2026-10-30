@@ -51,3 +51,13 @@ Final activity build verification: npm run check passed with42/42 API tests. `/u
 CUA isolated browser preview on3003 verified saved role/location query, page/result counts, platform provenance and employer/LinkedIn application links against explicitly labelled illustrative fixtures. No live provider result is claimed. Real public Arbeitnow check returned300 jobs and status limited at the configured cap. Changed-source secret-pattern scan and `git diff --check` passed.
 
 Google Jobs adapter remains **inactive on the hosted beta** until owner Free account and private credential activation are verified. No new provider account/key/search or paid resources were provisioned by this change.
+
+## Personal discovery and profile controls — 31 October 2026
+
+`npm run check`: client/server builds and types, formatting and **62 API tests pass**. New checks reproduce a populated shared catalogue followed by a fresh account: personal list/bootstrap remain0; foreign job reads/tracking return404. Own scans populate only that account; tracked historical jobs retain access. Multi-location/experience profiles round-trip, legacy experience strings remain accepted, multiple levels use OR eligibility, unknown seniority stays reviewable, city aliases are checked.
+
+CUA isolated account on3004 started at0 despite another account’s scan. Selected2 roles,2 suggested skills,3 Indian locations and2 experience levels; saved and reloaded successfully. Custom role Enter/add and Escape/close verified. Help explained annual salary and dismissed with Escape. Responsive390px check caught a tooltip clipping defect, corrected to an inset mobile tooltip. Fixtures are labelled illustrative; no QA accounts or preferences were written to the hosted owner’s data. Existing E2E source updated for the new controls; full CLI browser suite is not claimed rerun this slice.
+
+Two explicitly requested REA agents produced [Tsenta](rea-tsenta/findings.md) and [Jobright](rea-jobright/findings.md) reports from actual shipped frontend artifacts and public UI. Neither recovers private backend code or establishes exhaustive ingestion/application success. No paid operations, new credentials or competitor accounts.
+
+Migration: existing web-result memberships are retained. Previously global feed records are not retroactively attributed to accounts; an existing user may need a fresh scan to populate personal discovery. Saved applications remain accessible. Google Jobs provider activation remains pending.

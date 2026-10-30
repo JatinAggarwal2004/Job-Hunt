@@ -1,5 +1,9 @@
 import {
   useCallback,
+  useId,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
   useEffect,
   useRef,
   useState,
@@ -52,6 +56,14 @@ import { ActivityAdmin } from './ActivityAdmin'
 import { useActivityPixel } from './activity-pixel'
 import { BillingView, MonetizationPanel, smallAccessSummary } from './Billing'
 import { AccountRecoveryView, VerificationNotice } from './AccountSecurity'
+import { HelpTip, MultiChoice } from './ProfileControls'
+import {
+  roleOptions,
+  skillOptions,
+  locationOptions,
+  experienceOptions,
+  suggestedSkills,
+} from '../../shared/profile-options'
 import { AIAdminControls } from './AISettings'
 type Action = (work: () => Promise<void>, success?: string) => Promise<void>
 const pages: { id: Page; label: string; icon: typeof Search }[] = [
@@ -117,14 +129,49 @@ export function Field({
   children: ReactNode
   hint?: string
 }) {
+  const id = useId()
+  const help =
+    hint ||
+    (
+      {
+        'Minimum annual salary':
+          'Your lowest acceptable yearly salary, before tax. Enter 600000 for ₹6 lakh per year, or 0 for no minimum. Missing salaries follow the checkbox below.',
+        'Salary currency':
+          'The currency for your annual salary preference. We do not silently convert salaries between currencies.',
+        'Full name': 'Your preferred name for reviewed job application forms.',
+        Phone:
+          'Optional contact number for application preparation. Include your country code, for example +91 for India.',
+        'Current location':
+          'Where you live now. This does not replace your preferred job locations above.',
+        'Portfolio / website':
+          'An optional public link showing your work, such as a portfolio or GitHub profile.',
+        'LinkedIn profile':
+          'Optional URL of your own LinkedIn profile. This does not connect or scrape your LinkedIn account.',
+        'Professional summary':
+          'A short factual introduction used when you prepare applications. Suggestions never submit it for you.',
+        'Search time':
+          'Your preferred hour for the daily scan, interpreted in the time zone selected next.',
+        'Time zone':
+          'Controls when your scheduled scan runs. Choose Asia/Kolkata for Indian Standard Time.',
+      } as Record<string, string>
+    )[label]
   return (
-    <label className="ws-field">
-      <span>{label}</span>
-      {children}
-      {hint && <small>{hint}</small>}
-    </label>
+    <div className="ws-field">
+      <div className="ws-field-label">
+        <label htmlFor={id}>{label}</label>
+        {help && <HelpTip label={label}>{help}</HelpTip>}
+      </div>
+      {isValidElement(children)
+        ? cloneElement(children as ReactElement<{ id: string; 'aria-describedby'?: string }>, {
+            id,
+            'aria-describedby': hint ? `${id}-hint` : undefined,
+          })
+        : children}
+      {hint && <small id={`${id}-hint`}>{hint}</small>}
+    </div>
   )
 }
+
 function Auth({ onDone }: { onDone: () => void }) {
   const [register, setRegister] = useState(true),
     [error, setError] = useState(''),
@@ -173,7 +220,13 @@ function Auth({ onDone }: { onDone: () => void }) {
           <h2>{register ? 'Make room for what’s next.' : 'Welcome back.'}</h2>
           {register && (
             <Field label="Your name">
-              <input name="name" autoComplete="name" required maxLength={100} />
+              <input
+                name="name"
+                placeholder="For example, Jatin Aggarwal"
+                autoComplete="name"
+                required
+                maxLength={100}
+              />
             </Field>
           )}
           <Field label="Email address">
@@ -657,7 +710,9 @@ function OverviewView({
             </span>
             <strong>{item.n.toLocaleString()}</strong>
             <small>
-              {item.p === 'discover' ? 'Across connected sources' : 'From your application tracker'}
+              {item.p === 'discover'
+                ? 'From your own discovery scans'
+                : 'From your application tracker'}
             </small>
           </button>
         ))}
@@ -860,7 +915,7 @@ function Discover({
           <div key={s.id}>
             <strong>{s.name}</strong>
             <span>
-              {s.enabled ? 'Enabled' : 'Paused'} · {s.jobCount} roles on last check ·{' '}
+              {s.enabled ? 'Enabled' : 'Paused'} · {s.jobCount} roles in the last source check ·{' '}
               {date(s.lastRun)}
             </span>
             {s.lastError && <p className="ws-error">Last check failed: {s.lastError}</p>}
@@ -879,8 +934,8 @@ function Discover({
         <Empty title="Your next opportunity is out there.">
           <p>Run discovery to collect openings, or broaden your search filters.</p>
           <p>
-            Administrators can add company boards in Admin studio. Coverage includes only connected
-            sources.
+            Choose your interests in Search & profile, then run your first discovery. This list
+            starts empty for each account. Only configured sources can be searched.
           </p>
           <Button onClick={discover} disabled={busy || running}>
             Search connected sources <ArrowRight size={16} />
@@ -1564,14 +1619,6 @@ function ApplicationCard({
     </article>
   )
 }
-const splitList = (s: string) => [
-  ...new Set(
-    s
-      .split(',')
-      .map((v) => v.trim())
-      .filter(Boolean),
-  ),
-]
 function ProfileView({
   profile,
   act,
@@ -1583,10 +1630,14 @@ function ProfileView({
   busy: boolean
   onSaved: () => Promise<void>
 }) {
-  const [draft, setDraft] = useState(profile),
-    [roleText, setRoleText] = useState(profile.roles.join(', ')),
-    [skillText, setSkillText] = useState(profile.skills.join(', ')),
-    [locationText, setLocationText] = useState(profile.locations.join(', '))
+  const [draft, setDraft] = useState({
+    ...profile,
+    experienceLevels: profile.experienceLevels?.length
+      ? profile.experienceLevels
+      : profile.experience
+        ? [profile.experience]
+        : [],
+  })
   function field<K extends keyof Profile>(key: K, value: Profile[K]) {
     setDraft((old) => ({ ...old, [key]: value }))
   }
@@ -1595,9 +1646,7 @@ function ProfileView({
     void act(async () => {
       await api('/profile', 'PUT', {
         ...draft,
-        roles: splitList(roleText),
-        skills: splitList(skillText),
-        locations: splitList(locationText),
+        experience: draft.experienceLevels[0] || '',
       })
       await onSaved()
     }, 'Your direction is saved. New discoveries will use these preferences.')
@@ -1607,7 +1656,7 @@ function ProfileView({
       <Heading
         eyebrow="A SEARCH THAT GETS YOU"
         title="Make room for your kind of work."
-        description="A reusable profile, more than one interest, and a search rhythm that suits you."
+        description="Choose the work, places and experience levels that fit you. Your next search uses these choices."
       />
       <form onSubmit={submit} className="ws-profile-form">
         <section className="ws-panel">
@@ -1615,62 +1664,89 @@ function ProfileView({
             <h2>Your direction</h2>
             <CompassIcon />
           </div>
-          <Field
+          <p className="ws-muted">
+            Start with roles, then choose skills and locations. Examples are suggestions, never
+            facts added to your profile automatically.
+          </p>
+          <MultiChoice
             label="Roles you’re interested in"
-            hint="Separate roles with commas. Try broad role names; you can refine the results later."
-          >
-            <input
-              value={roleText}
-              onChange={(e) => setRoleText(e.target.value)}
-              placeholder="Frontend Engineer, Backend Engineer, Product Designer"
-              maxLength={2000}
-            />
-          </Field>
-          <Field
+            hint="Choose more than one role. Search examples or type your own and press Enter. Related skills will be suggested below."
+            values={draft.roles}
+            options={roleOptions}
+            onChange={(values) => field('roles', values)}
+            placeholder="Try Software Engineer or Product Designer"
+          />
+          <MultiChoice
             label="Skills you can demonstrate"
-            hint="Used to explain matches and resume keyword coverage. Comma separated."
-          >
-            <input
-              value={skillText}
-              onChange={(e) => setSkillText(e.target.value)}
-              placeholder="React, TypeScript, SQL"
-              maxLength={2000}
-            />
-          </Field>
+            hint="Select skills you can explain or demonstrate. These help explain matches and resume feedback; they are not strict requirements for every job."
+            values={draft.skills}
+            options={skillOptions}
+            suggestions={suggestedSkills(draft.roles)}
+            onChange={(values) => field('skills', values)}
+            placeholder="Try Java, React or communication"
+          />
           <div className="ws-form-grid">
-            <Field
+            <MultiChoice
               label="Preferred job locations"
-              hint="Comma separated. Remote roles can still have country restrictions."
-            >
-              <input
-                value={locationText}
-                onChange={(e) => setLocationText(e.target.value)}
-                placeholder="India, Bengaluru, Worldwide"
-                maxLength={2000}
-              />
-            </Field>
-            <Field label="Experience level">
-              <select
-                value={draft.experience}
-                onChange={(e) => field('experience', e.target.value)}
-              >
-                <option value="">Any level</option>
-                <option>Internship</option>
-                <option>Entry level</option>
-                <option>Mid level</option>
-                <option>Senior</option>
-                <option>Lead</option>
-              </select>
-            </Field>
-          </div>
-          <label className="ws-check">
-            <input
-              type="checkbox"
-              checked={draft.remoteOnly}
-              onChange={(e) => field('remoteOnly', e.target.checked)}
+              hint="Choose countries and cities, including multiple places in India. Add a custom location if it is missing. Remote jobs can still have country restrictions."
+              values={draft.locations}
+              options={locationOptions}
+              onChange={(values) => field('locations', values)}
+              placeholder="Search India, Bengaluru, Hyderabad…"
             />
-            Remote roles only
-          </label>
+            <MultiChoice
+              label="Experience level"
+              allowCustom={false}
+              hint="Select all levels you would consider. Any selected level can match. Unknown levels remain visible for you to check; clear all for any level."
+              values={draft.experienceLevels}
+              options={experienceOptions}
+              onChange={(values) =>
+                field(
+                  'experienceLevels',
+                  values.filter((value) => experienceOptions.includes(value)),
+                )
+              }
+              placeholder="Search Internship, Entry level…"
+            />
+          </div>
+          {draft.locations.some((location) =>
+            /india|bengaluru|hyderabad|pune|chennai|mumbai|delhi|gurugram|noida|kolkata/i.test(
+              location,
+            ),
+          ) &&
+            (draft.currency !== 'INR' || draft.timezone !== 'Asia/Kolkata') && (
+              <div className="ws-choice-suggestions">
+                <span>
+                  Searching in India? You can use INR for salary and Indian Standard Time for
+                  scheduling.
+                </span>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      field('currency', 'INR')
+                      field('timezone', 'Asia/Kolkata')
+                    }}
+                  >
+                    Use INR and Indian Standard Time
+                  </button>
+                </div>
+              </div>
+            )}
+          <div className="ws-check-help">
+            <label className="ws-check">
+              <input
+                type="checkbox"
+                checked={draft.remoteOnly}
+                onChange={(e) => field('remoteOnly', e.target.checked)}
+              />
+              Remote roles only{' '}
+            </label>
+            <HelpTip label="Remote roles only">
+              Only show jobs explicitly marked remote. A remote role may still require living in a
+              specific country.
+            </HelpTip>
+          </div>
           <div className="ws-form-grid">
             <Field label="Minimum annual salary">
               <input
@@ -1689,16 +1765,28 @@ function ProfileView({
               </select>
             </Field>
           </div>
-          <label className="ws-check">
-            <input
-              type="checkbox"
-              checked={draft.includeUnknownSalary}
-              onChange={(e) => field('includeUnknownSalary', e.target.checked)}
-            />
-            Include roles with undisclosed salary
-          </label>
+          <div className="ws-check-help">
+            <label className="ws-check">
+              <input
+                type="checkbox"
+                checked={draft.includeUnknownSalary}
+                onChange={(e) => field('includeUnknownSalary', e.target.checked)}
+              />
+              Include roles with undisclosed salary{' '}
+            </label>
+            <HelpTip label="Undisclosed salary">
+              Keep roles whose salary was not published. Turning this off with a minimum salary can
+              hide many otherwise relevant openings.
+            </HelpTip>
+          </div>
           <fieldset className="ws-fieldset">
-            <legend>Company sizes to explore</legend>
+            <legend>
+              Company sizes to explore{' '}
+              <HelpTip label="Company sizes">
+                These ranges mean employee count. Leave all clear to consider every size, including
+                small teams. Unknown sizes remain visible.
+              </HelpTip>
+            </legend>
             <p>
               Known sizes are used when available. Most public boards do not provide headcount;
               unknown sizes remain visible and are labelled.
@@ -1751,6 +1839,7 @@ function ProfileView({
                 value={draft.phone}
                 maxLength={40}
                 onChange={(e) => field('phone', e.target.value)}
+                placeholder="+91 98765 43210"
                 autoComplete="tel"
               />
             </Field>
@@ -1797,14 +1886,20 @@ function ProfileView({
             <h2>A rhythm for your search</h2>
             <CalendarClock size={22} />
           </div>
-          <label className="ws-check">
-            <input
-              type="checkbox"
-              checked={draft.scheduleEnabled}
-              onChange={(e) => field('scheduleEnabled', e.target.checked)}
-            />
-            Search connected sources daily
-          </label>
+          <div className="ws-check-help">
+            <label className="ws-check">
+              <input
+                type="checkbox"
+                checked={draft.scheduleEnabled}
+                onChange={(e) => field('scheduleEnabled', e.target.checked)}
+              />
+              Search connected sources daily{' '}
+            </label>
+            <HelpTip label="Daily searches">
+              Runs a discovery scan each day when the server is available. Membership and provider
+              limits apply; it never submits applications.
+            </HelpTip>
+          </div>
           <div className="ws-form-grid">
             <Field label="Search time">
               <select
@@ -2124,8 +2219,8 @@ function Admin({
                 <strong>{s.name}</strong>
                 <span className="ws-pill">{s.type}</span>
                 <p>
-                  {s.slug || 'Public aggregate feed'} · {s.jobCount} roles on last check ·{' '}
-                  {date(s.lastRun)}
+                  {s.slug || 'Public aggregate feed'} · {s.jobCount} roles in the last source check
+                  · {date(s.lastRun)}
                 </p>
                 {s.lastError && <p className="ws-error">{s.lastError}</p>}
               </div>
@@ -2241,7 +2336,8 @@ function Admin({
           </div>
           <p className="ws-muted">
             Each person’s resume, profile, notes and application states are private to their
-            account. Job-source listings are shared.
+            account. Discovered results belong to each account’s scans; source connections are
+            shared.
           </p>
         </section>
       </div>

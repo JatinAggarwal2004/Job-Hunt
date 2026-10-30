@@ -18,3 +18,5 @@ POST /extension/token -> {token:string} explicit issue, hashed at rest; GET /ext
 GET /health -> {ok:true} no private data.
 
 DELETE /extension/token revokes the current connection token. GET /extension/profile responds {profile:{name,email,phone,location,website,linkedin}}; no resume/notes/full account data is exposed to the assistant. Job.available=false means absent from the latest bounded source response, not confirmed closed; excluded from discovery and retained in tracked history.
+
+31 October2026 profile/discovery update: Profile accepts optional `experienceLevels` array (Internship, Entry level, Mid level, Senior, Lead); legacy `experience` string remains accepted. Multiple levels use OR filtering; unstated title seniority stays unknown. `/jobs`, direct job reads/tracking and bootstrap counts require the account’s own discovery membership or existing tracked application. A new account has0 results irrespective of shared catalogue size. Existing unattributed feed rows require a fresh scan; tracked history and prior web memberships persist.

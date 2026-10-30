@@ -59,6 +59,7 @@ const profileDefault = (u: User): Profile => ({
   locations: [],
   remoteOnly: false,
   experience: '',
+  experienceLevels: [],
   salaryMin: 0,
   currency: 'INR',
   includeUnknownSalary: true,
@@ -88,6 +89,10 @@ const profileSchema = z
     locations: strings,
     remoteOnly: z.boolean(),
     experience: z.string().max(100),
+    experienceLevels: z
+      .array(z.enum(['Internship', 'Entry level', 'Mid level', 'Senior', 'Lead']))
+      .max(5)
+      .optional(),
     salaryMin: z.number().min(0).max(1e10),
     currency: z.string().regex(/^[A-Z]{3}$/),
     includeUnknownSalary: z.boolean(),
@@ -178,6 +183,7 @@ export function createApp(
  CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),data TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS resumes(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),data TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS applications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),job_id TEXT NOT NULL REFERENCES jobs(id),status TEXT NOT NULL,notes TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(user_id,job_id));
+ CREATE TABLE IF NOT EXISTS discovered_jobs(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,PRIMARY KEY(user_id,job_id));
  CREATE TABLE IF NOT EXISTS web_job_access(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,PRIMARY KEY(user_id,job_id));
  CREATE TABLE IF NOT EXISTS extension_tokens(user_id TEXT PRIMARY KEY REFERENCES users(id),token TEXT NOT NULL,expires INTEGER NOT NULL);`)
   if (path !== ':memory:')
@@ -201,6 +207,7 @@ export function createApp(
     db.prepare('INSERT INTO sources VALUES(?,?)').run(s.id, JSON.stringify(s))
   }
   db.prepare("INSERT OR IGNORE INTO system_meta VALUES('sources-initialized','yes')").run()
+  db.exec('INSERT OR IGNORE INTO discovered_jobs SELECT user_id,job_id FROM web_job_access')
   const getSettings = () =>
     JSON.parse((db.prepare('SELECT data FROM settings WHERE id=1').get() as any).data) as Settings
   const getProfile = (id: string) =>
@@ -322,8 +329,7 @@ export function createApp(
             db.prepare(
               'INSERT INTO jobs VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
             ).run(job.id, JSON.stringify({ ...job, available: true }))
-            if (source.id === WEB_SOURCE_ID)
-              db.prepare('INSERT OR IGNORE INTO web_job_access VALUES(?,?)').run(uid, job.id)
+            db.prepare('INSERT OR IGNORE INTO discovered_jobs VALUES(?,?)').run(uid, job.id)
             found.add(job.id)
           }
           source.jobCount = jobs.length
@@ -390,11 +396,16 @@ export function createApp(
     return { ...job, matchScore: m.score, matchReasons: m.reasons, status: a?.status || null }
   }
   const visibleJob = (job: Job, user: string) =>
-    job.source !== WEB_SOURCE_ID ||
     Boolean(
-      db.prepare('SELECT 1 FROM web_job_access WHERE user_id=? AND job_id=?').get(user, job.id),
+      db.prepare('SELECT 1 FROM discovered_jobs WHERE user_id=? AND job_id=?').get(user, job.id),
     ) ||
     Boolean(db.prepare('SELECT 1 FROM applications WHERE user_id=? AND job_id=?').get(user, job.id))
+  const personalJobRows = (user: string) =>
+    db
+      .prepare(
+        `SELECT jobs.data FROM jobs JOIN (SELECT job_id FROM discovered_jobs WHERE user_id=? UNION SELECT job_id FROM applications WHERE user_id=?) AS access ON access.job_id=jobs.id`,
+      )
+      .all(user, user)
   const jobById = (id: string, uid: string) => {
     const row = db.prepare('SELECT data FROM jobs WHERE id=?').get(id) as any
     if (!row || !visibleJob(JSON.parse(row.data), uid)) throw new HttpError(404, 'Job not found')
@@ -730,13 +741,10 @@ export function createApp(
     '/api/jobs',
     route((req, res) => {
       const p = getProfile(uid(req))
-      let jobs = db
-        .prepare('SELECT data FROM jobs')
-        .all()
+      let jobs = personalJobRows(uid(req))
         .map((r: any) => decorate(r.data, uid(req)))
         .filter(
           (j) =>
-            visibleJob(j, uid(req)) &&
             j.available !== false &&
             listSources().some((s) => s.id === j.source && s.enabled) &&
             match(j, p).eligible,
@@ -1037,13 +1045,10 @@ export function createApp(
         .prepare('SELECT status FROM applications WHERE user_id=?')
         .all(user.id) as any[]
       const seen = new Set<string>()
-      const jobs = db
-        .prepare('SELECT data FROM jobs')
-        .all()
+      const jobs = personalJobRows(user.id)
         .filter((r: any) => {
           const job = JSON.parse(r.data)
           return (
-            visibleJob(job, user.id) &&
             job.available !== false &&
             listSources().some((s) => s.id === job.source && s.enabled) &&
             match(job, p).eligible

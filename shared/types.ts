@@ -20,6 +20,7 @@ export type Profile = {
   roles: string[]
   locations: string[]
   remoteOnly: boolean
+  experienceLevels?: string[]
   experience: string
   salaryMin: number
   currency: string

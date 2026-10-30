@@ -1903,3 +1903,186 @@
     margin-left: 0;
   }
 }
+
+/* Profile choices and contextual help share the workspace control vocabulary. */
+.ws-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 550;
+}
+.ws-help {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  font-weight: 400;
+}
+.workspace .ws-help-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: help;
+}
+.workspace .ws-help-trigger:hover,
+.workspace .ws-help-trigger:focus-visible {
+  color: var(--ws-accent);
+  background: var(--field);
+}
+.ws-help-tip {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  right: 0;
+  width: min(280px, 70vw);
+  padding: 12px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0003;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+}
+.ws-multifield {
+  border: 0;
+  padding: 0;
+  margin: 0 0 24px;
+  min-width: 0;
+}
+.ws-multifield legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 550;
+  padding: 0;
+}
+.ws-choice-hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 10px;
+  max-width: 72ch;
+}
+.ws-selected-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workspace .ws-choice-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 10px;
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.ws-choice-dropdown {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--field);
+}
+.ws-choice-dropdown > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 10px 13px;
+  cursor: pointer;
+  list-style: none;
+}
+.ws-choice-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+.ws-choice-menu {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ws-choice-options {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ws-choice-options .ws-check {
+  min-height: 42px;
+  margin: 0;
+  padding: 8px 4px;
+}
+.ws-choice-suggestions {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.ws-choice-suggestions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.workspace .ws-choice-suggestions button {
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  padding: 7px 10px;
+  min-height: 36px;
+}
+.workspace :is(.ws-choice-chip, .ws-choice-suggestions button):hover {
+  border-color: var(--ws-accent);
+}
+.ws-multifield .ws-help-tip {
+  left: 0;
+  right: auto;
+}
+@media (max-width: 700px) {
+  .workspace :is(.ws-choice-chip, .ws-choice-suggestions button, .ws-help-trigger) {
+    min-height: 44px;
+  }
+  .ws-help-trigger {
+    min-width: 40px;
+  }
+  .ws-multifield .ws-help-tip {
+    left: auto;
+    right: 0;
+  }
+}
+
+.ws-check-help {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 12px 0;
+}
+.ws-check-help > .ws-check {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .ws-help-tip,
+  .ws-multifield .ws-help-tip {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: auto;
+    bottom: 96px;
+    width: auto;
+    max-width: none;
+  }
+}

@@ -17,7 +17,7 @@ Each run checks the provider’s [free Account API](https://serpapi.com/account-
 
 - Up to six provider searches per discovery run; breadth-first role/location combinations, then up to a second page per query. Extra combinations and remaining pages are reported as limited coverage.
 - A shared SQLite monthly budget reserves requests atomically before dispatch; failed attempts conservatively retain their reservation. Provider remaining allowance also bounds each run. Restarting the service does not reset the budget. This limits a shared free beta, not five full-web searches for every free account at unlimited scale.
-- Only the discovering user can see or track a query-specific job. Another account’s search cannot remove prior results. Repeated listings update with SQL UPSERT so existing access memberships and applications survive.
+- Only an account whose scan found a job can see or track it, across both feeds and the web index. Saved historical applications retain access. New accounts start at zero even when the shared source catalogue is populated. Another account’s search cannot remove prior results. Repeated listings update with SQL UPSERT so existing access memberships and applications survive.
 - Existing feed/board refreshes report result/page limits. Arbeitnow pages are constructed on its fixed endpoint (max five), never followed to arbitrary returned URLs. Only complete feed responses retire missing jobs; partial failures retain earlier data.
 - Indexed dates/salaries stay unknown unless normalized reliably; there is no invented posting date or model-ranked hiring probability. Confirm on the employer/application page before applying.
 

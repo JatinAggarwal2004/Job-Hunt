@@ -221,11 +221,28 @@ export function match(
     (job.currency !== profile.currency || (job.salaryMax ?? job.salaryMin) < profile.salaryMin)
   )
     eligible = false
-  if (profile.experience) {
-    const junior = /intern|entry|junior/i.test(profile.experience),
-      senior = /senior|staff|principal|lead|head|director/i.test(job.title)
-    if (junior && senior) eligible = false
-    reasons.push('Experience eligibility must be checked in the full description')
+  const levels = profile.experienceLevels?.length
+    ? profile.experienceLevels
+    : profile.experience
+      ? [profile.experience]
+      : []
+  if (levels.length) {
+    const title = job.title.toLowerCase()
+    const level = /intern|trainee|apprentice/.test(title)
+      ? 'Internship'
+      : /\blead\b|head of|director|principal/.test(title)
+        ? 'Lead'
+        : /senior|\bsr\b|staff/.test(title)
+          ? 'Senior'
+          : /junior|\bjr\b|entry|graduate|fresher|associate/.test(title)
+            ? 'Entry level'
+            : /mid.level|intermediate/.test(title)
+              ? 'Mid level'
+              : null
+    if (level && !levels.includes(level)) eligible = false
+    reasons.push(
+      level ? `Experience: ${level}` : 'Experience not stated in title; check the full description',
+    )
   }
   if (
     profile.companySizes.length &&
@@ -280,6 +297,8 @@ function normalizeLocation(s: string) {
     .replace(/\b(usa|u\.s\.a\.?|us)\b/g, 'united states')
     .replace(/\buk\b/g, 'united kingdom')
     .replace(/\bbangalore\b/g, 'bengaluru')
+    .replace(/\bgurgaon\b/g, 'gurugram')
+    .replace(/\b(new delhi|noida|gurugram)\b/g, '$1 delhi ncr')
 }
 
 export function canonicalJobUrl(value: string) {
