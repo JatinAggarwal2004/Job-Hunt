@@ -31,7 +31,7 @@ export function profileGuidance(
     ),
     ready: input.roles.length > 0 && input.locations.length > 0 && source.enabled > 0,
     steps,
-    summary: `${input.roles.length} roles · ${input.locations.length} locations · ${input.experienceLevels?.length || 'any'} experience levels`,
+    summary: `${input.roles.length} ${input.roles.length === 1 ? 'role' : 'roles'} · ${input.locations.length} ${input.locations.length === 1 ? 'location' : 'locations'} · ${input.experienceLevels?.length ? `${input.experienceLevels.length} experience ${input.experienceLevels.length === 1 ? 'level' : 'levels'}` : 'any experience level'}`,
     source: { enabled: source.enabled, webConfigured: source.webConfigured },
     indiaDefaults: india ? { currency: 'INR', timezone: 'Asia/Kolkata' } : null,
     notice:

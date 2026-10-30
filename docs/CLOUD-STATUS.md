@@ -27,3 +27,7 @@ Sources: [Railway plans](https://docs.railway.com/pricing/plans), [Railway outbo
 ## Wider discovery preparation
 
 Added a Free-only Google Jobs index adapter and feed pagination with honest per-run coverage, per-user result access and persistent usage caps. Provider connection activated31 October2026 after explicit owner approval: Active$0Free/250monthly plan verified, private Railway key+opt-in+200shared cap deployed. Actual hosted India query returned17indexed listings over2pages; providerremaining248confirmed. Existing hosted feeds keep working. See [setup and limits](WEB-DISCOVERY.md).
+
+## Backend follow-up — 31 October2026
+
+Independent server-side profile guidance and explicit experience requirement matching deployed and verified. Hosted owner session/preferences and17indexed India records survived restart; stored results re-filtered from6to4without another provider query. Invalid manually configured Google→Greenhouse board (sluggoogle, HTTP404) was paused; working GoogleJobsindex andArbeitnow remain enabled. Provider balance remained248/250 after2Free test searches. No model/payment activation or paid upgrade.
