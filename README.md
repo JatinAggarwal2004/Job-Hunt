@@ -30,7 +30,8 @@ Build checks types and creates frontend `dist/` plus executable backend `build/s
 
 - Accounts with scrypt password hashes, HTTP-only sessions, sign-out and per-user ownership checks.
 - Persistent profiles with several role interests, skills, locations, remote preference, experience, annual salary threshold, currency and company-size interests.
-- Real public-feed collection from Arbeitnow, plus configurable Greenhouse, Lever and Ashby company boards. Add any supported company slug in Admin studio. Arbeitnow is the initial connected source; its coverage is primarily European. The source registry is deliberately explicit rather than a claim to cover every employer.
+- Optional Google Jobs web-index discovery through an explicitly connected, verified SerpApi Free account. Searches role/location combinations, preserves platform application links, reports actual query/page coverage and omissions. Six searches/run, two pages/query, default200 shared searches/month (hard cap250), with persistent budget reservations; paid/unknown plans fail closed. See [setup and limits](docs/WEB-DISCOVERY.md).
+- Paginated public-feed collection from Arbeitnow (up to five pages within the configured result cap), plus configurable Greenhouse, Lever and Ashby company boards. Add any supported company slug in Admin studio. Arbeitnow is the initial connected source; its coverage is primarily European. The source registry is deliberately explicit rather than a claim to cover every employer.
 - Deduplicated canonical job URLs, preserved query-based job IDs, source freshness/errors, explained preference matching and unknown salary/headcount labels. Remote is checked against preferred geography; it is not treated as worldwide automatically.
 - Daily timezone-aware scheduled searches with persisted daily deduplication and catch-up after a late start. **The server must remain running**; this is not an always-on cloud scheduler. Discovery never submits applications.
 - Resume upload/extraction for PDF, DOCX and TXT, up to 5 MB; text versions, editing, deletion and text export. Scanned PDFs require manually pasted text. Uploaded original file bytes are not retained.
@@ -40,7 +41,7 @@ Build checks types and creates frontend `dist/` plus executable backend `build/s
 - Admin settings for product name/accent, discovery enablement, collection caps, AI providers/request limits, company boards, source health, users and run history.
 - A downloadable Manifest V3 contact-field autofill assistant, issued/revoked from Settings. It fills only recognized empty native contact fields after a user click. No automatic submissions, file uploads, demographic/authorization/salary answers, custom controls or embedded-frame support.
 
-A successful source refresh retires jobs absent from its bounded response from discovery. Historical tracked jobs remain. Such absence can reflect a feed/page/cap change, not necessarily an employer closing the role. A failed source check retains earlier data and exposes the error. Live listings should always be confirmed on the employer page.
+A complete feed/board refresh retires jobs absent from that response from discovery. Partial/paginated-limit refreshes retain earlier data. Query-specific web results are private to the account that found them and are not globally retired by another user’s search. Historical tracked jobs remain. Such absence can reflect a feed/page/cap change, not necessarily an employer closing the role. A failed source check retains earlier data and exposes the error. Live listings should always be confirmed on the employer page.
 
 ## Membership and AI
 

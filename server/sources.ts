@@ -1,4 +1,4 @@
-import type { Source, Job, Profile } from '../shared/types.ts'
+import type { Source, Job, Profile, SearchCoverage } from '../shared/types.ts'
 import { createHash } from 'node:crypto'
 import { hasSkill } from './resume.ts'
 import { decodeHTML } from 'entities'
@@ -51,12 +51,15 @@ export async function limitedJson(url: string, fetcher: typeof fetch = fetch, ti
   }
   return JSON.parse(Buffer.concat(parts).toString('utf8'))
 }
-export async function collect(
+async function collectPage(
   source: Source,
   limit: number,
   fetcher: typeof fetch = fetch,
-): Promise<RawJob[]> {
-  const data = await limitedJson(sourceUrl(source), fetcher)
+  page = 1,
+): Promise<{ jobs: RawJob[]; more: boolean }> {
+  const url = new URL(sourceUrl(source))
+  if (page > 1) url.searchParams.set('page', String(page))
+  const data = await limitedJson(url.toString(), fetcher)
   const items =
     source.type === 'arbeitnow'
       ? data.data
@@ -66,7 +69,7 @@ export async function collect(
           ? data.jobs
           : data
   if (!Array.isArray(items)) throw Error('Unexpected source response')
-  return items.slice(0, limit).flatMap((j: any) => {
+  const jobs = items.slice(0, limit).flatMap((j: any) => {
     const url = j.url || j.absolute_url || j.hostedUrl || j.jobUrl
     try {
       const u = new URL(url)
@@ -118,6 +121,54 @@ export async function collect(
       },
     ]
   })
+  return {
+    jobs,
+    more: items.length > limit || (source.type === 'arbeitnow' && Boolean(data.links?.next)),
+  }
+}
+export async function collectWithCoverage(
+  source: Source,
+  limit: number,
+  fetcher: typeof fetch = fetch,
+) {
+  const jobs = new Map<string, RawJob>()
+  const coverage: SearchCoverage = {
+    source: source.id,
+    name: source.name,
+    status: 'completed',
+    pages: 0,
+    jobs: 0,
+    queries: [],
+    omittedQueries: 0,
+    note: '',
+  }
+  let more = false
+  do {
+    try {
+      const result = await collectPage(source, limit - jobs.size, fetcher, coverage.pages + 1)
+      coverage.pages++
+      for (const job of result.jobs) jobs.set(job.id, job)
+      more = result.more
+    } catch (error) {
+      if (!coverage.pages) throw error
+      more = true
+      coverage.note = 'A later feed page failed; earlier results were retained.'
+      break
+    }
+  } while (source.type === 'arbeitnow' && more && jobs.size < limit && coverage.pages < 5)
+  coverage.jobs = jobs.size
+  coverage.status = more ? 'limited' : 'completed'
+  coverage.note ||= more
+    ? 'Stopped at the feed page or result limit; coverage is incomplete.'
+    : 'Checked this connected feed or company board; this is not the whole web.'
+  return { jobs: [...jobs.values()], coverage }
+}
+export async function collect(
+  source: Source,
+  limit: number,
+  fetcher: typeof fetch = fetch,
+): Promise<RawJob[]> {
+  return (await collectWithCoverage(source, limit, fetcher)).jobs
 }
 export function match(
   job: RawJob,

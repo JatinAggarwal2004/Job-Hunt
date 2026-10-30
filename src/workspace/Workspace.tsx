@@ -746,6 +746,13 @@ function Discover({
     [remote, setRemote] = useState(false),
     [source, setSource] = useState(''),
     [sources, setSources] = useState<Source[]>([]),
+    [coverageRuns, setCoverageRuns] = useState<Run[]>([]),
+    [webStatus, setWebStatus] = useState<{
+      configured: boolean
+      monthlyCap: number
+      maxRequestsPerRun: number
+      maxPagesPerQuery: number
+    } | null>(null),
     [loading, setLoading] = useState(true),
     [selected, setSelected] = useState<Job | null>(null)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -766,8 +773,16 @@ function Discover({
     return () => clearTimeout(id)
   }, [load])
   useEffect(() => {
-    void act(async () => setSources((await api<{ sources: Source[] }>('/sources')).sources))
-  }, [])
+    void act(async () => {
+      const [data, history] = await Promise.all([
+        api<{ sources: Source[]; webDiscovery: typeof webStatus }>('/sources'),
+        api<{ runs: Run[] }>('/discovery/runs'),
+      ])
+      setSources(data.sources)
+      setWebStatus(data.webDiscovery)
+      setCoverageRuns(history.runs)
+    })
+  }, [running])
   useEffect(() => {
     if (selected) dialog.current?.showModal()
   }, [selected])
@@ -781,7 +796,7 @@ function Discover({
       <Heading
         eyebrow="OPEN DOORS. REAL POSSIBILITIES."
         title="Find work that fits you."
-        description="Real openings from your connected sources, ranked against your preferences."
+        description="Search your connected feeds, company boards and configured web index, ranked against your preferences."
       >
         <Button primary onClick={discover} disabled={busy || running}>
           {running ? <LoaderCircle size={16} className="ws-spin" /> : <Sparkles size={16} />}{' '}
@@ -818,9 +833,29 @@ function Discover({
       <details className="ws-coverage">
         <summary>Connected sources &amp; search coverage</summary>
         <p>
-          Only the sources below are checked. Remote does not guarantee eligibility in your country.
-          Missing salary and company size stay unknown.
+          {webStatus?.configured
+            ? `Web index connected: up to ${webStatus.maxRequestsPerRun} searches per run, ${webStatus.maxPagesPerQuery} pages per role/location query, and ${webStatus.monthlyCap} shared searches per month.`
+            : 'Wider web search is not connected yet. Currently only enabled feeds and company boards are checked. Ask your administrator to connect the free web-search provider.'}{' '}
+          No index covers every job. Remote does not guarantee eligibility in your country. Missing
+          salary and company size stay unknown.
         </p>
+        {coverageRuns[0]?.coverage?.map((item) => (
+          <div key={item.source}>
+            <strong>Latest run · {item.name}</strong>
+            <span>
+              {item.status} · {item.pages} pages · {item.jobs} collected · {item.omittedQueries}{' '}
+              queries omitted
+            </span>
+            {item.queries.length > 0 && (
+              <ul>
+                {item.queries.map((query) => (
+                  <li key={query}>{query}</li>
+                ))}
+              </ul>
+            )}
+            <p>{item.note}</p>
+          </div>
+        ))}
         {sources.map((s) => (
           <div key={s.id}>
             <strong>{s.name}</strong>
@@ -860,7 +895,8 @@ function Discover({
                 <div>
                   <strong>{job.company}</strong>
                   <small>
-                    {sources.find((s) => s.id === job.source)?.name ||
+                    {job.via ||
+                      sources.find((s) => s.id === job.source)?.name ||
                       'Previously connected source'}
                   </small>
                 </div>
@@ -929,9 +965,25 @@ function Discover({
               </ul>
               <small>This is a preference match, not a hiring prediction.</small>
             </div>
+            {selected.via && (
+              <p className="ws-muted">
+                Indexed via {selected.via}. Confirm the opening and eligibility on the application
+                site.
+              </p>
+            )}
+            {Boolean(selected.applyLinks?.length) && (
+              <div className="ws-tags">
+                {selected.applyLinks!.map((link) => (
+                  <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">
+                    Apply via {link.name} <ArrowUpRight size={14} />
+                  </a>
+                ))}
+              </div>
+            )}
             <div className="ws-description">{selected.description}</div>
             <p className="ws-muted">
-              Posted: {date(selected.postedAt)} · Collected: {date(selected.fetchedAt)}
+              Posted: {selected.postedAt ? date(selected.postedAt) : 'Not listed'} · Collected:{' '}
+              {date(selected.fetchedAt)}
             </p>
             <div className="ws-row">
               <Button

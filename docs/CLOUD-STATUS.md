@@ -23,3 +23,7 @@ The empty Turso Free database remains **unconnected**. No Turso token was genera
 Signup, owner email verification and admin access are verified on the public service. Recovery email delivery is verified; an actual password replacement remains untested. Verify full user isolation, scan accounting and resume processing on the deployed service. Configure and test Razorpay sandbox lifecycle events and an approved AI model before enabling those features. Verify off-host backup/restore and review free-quota retention notices before accepting production users.
 
 Sources: [Railway plans](https://docs.railway.com/pricing/plans), [Railway outbound networking](https://docs.railway.com/networking/outbound-networking), [Vercel Hobby](https://vercel.com/docs/plans/hobby), [Render Free](https://render.com/docs/free), [Northflank pricing](https://northflank.com/pricing), [Turso Free](https://turso.tech/pricing). Provider limits can change; account eligibility and the actual dashboard take precedence over a pricing headline.
+
+## Wider discovery preparation
+
+Added a Free-only Google Jobs index adapter and feed pagination with honest per-run coverage, per-user result access and persistent usage caps. Provider connection is not yet active: owner SerpApi Free setup/approval remains pending. Existing hosted feeds keep working. See [setup and limits](WEB-DISCOVERY.md).

@@ -30,6 +30,8 @@ export type Profile = {
   timezone: string
 }
 export type Job = {
+  via?: string
+  applyLinks?: { name: string; url: string }[]
   available?: boolean
   id: string
   title: string
@@ -61,7 +63,7 @@ export type Application = {
 export type Source = {
   id: string
   name: string
-  type: 'arbeitnow' | 'greenhouse' | 'lever' | 'ashby'
+  type: 'arbeitnow' | 'greenhouse' | 'lever' | 'ashby' | 'google_jobs'
   slug: string
   enabled: boolean
   lastRun: string | null
@@ -69,12 +71,23 @@ export type Source = {
   jobCount: number
 }
 export type Run = {
+  coverage?: SearchCoverage[]
   id: string
   status: 'running' | 'completed' | 'partial' | 'failed'
   startedAt: string
   finishedAt: string | null
   jobsFound: number
   error: string | null
+}
+export type SearchCoverage = {
+  source: string
+  name: string
+  status: 'completed' | 'limited' | 'failed'
+  pages: number
+  jobs: number
+  queries: string[]
+  omittedQueries: number
+  note: string
 }
 export type Suggestion = {
   id: string

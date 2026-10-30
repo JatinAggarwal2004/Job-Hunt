@@ -43,3 +43,11 @@ Final activity build verification: npm run check passed with42/42 API tests. `/u
 
 - Follow-up email activation: user approved a restricted Brevo key (only Transactional email, three-month expiry) and private Railway storage. No key value was printed, saved to a local file or committed. Brevo logs show **Delivered** for both `Verify your Job-Hunter email` and `Reset your Job-Hunter password`. Owner-created account is verified and the actual public Admin studio loads. Password replacement was not performed; the owner chose their own credentials.
 - After email configuration, public readiness503 reports only `payment_gateway`; health remains200. Mail is no longer missing. Earlier registration503 observations describe the safe pre-configuration gate, not the now-open signup state. Payment/hosted AI activation and a complete authenticated user-flow suite remain separate launch gates.
+
+## Wider discovery — 30 October 2026
+
+`npm run check`: build, server/client types, formatting and **58 API checks passed**. Eight new checks exercise indexed multi-platform links, breadth-first pagination, omitted queries, repeated tokens, provider errors, Free-only guards, atomic/persistent shared budgets, partial feed pages and cross-account search/tracker access.
+
+CUA isolated browser preview on3003 verified saved role/location query, page/result counts, platform provenance and employer/LinkedIn application links against explicitly labelled illustrative fixtures. No live provider result is claimed. Real public Arbeitnow check returned300 jobs and status limited at the configured cap. Changed-source secret-pattern scan and `git diff --check` passed.
+
+Google Jobs adapter remains **inactive on the hosted beta** until owner Free account and private credential activation are verified. No new provider account/key/search or paid resources were provisioned by this change.

@@ -29,7 +29,8 @@ import type {
   Application,
   ApplicationStatus,
 } from '../shared/types.ts'
-import { collect, match, limitedJson } from './sources.ts'
+import { collectWithCoverage, match, limitedJson, canonicalJobUrl } from './sources.ts'
+import { createWebDiscovery, WEB_SOURCE_ID } from './web-discovery.ts'
 import { analyze } from './resume.ts'
 const now = () => new Date().toISOString()
 const hash = (s: string) => createHash('sha256').update(s).digest('hex')
@@ -177,6 +178,7 @@ export function createApp(
  CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),data TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS resumes(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),data TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS applications(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),job_id TEXT NOT NULL REFERENCES jobs(id),status TEXT NOT NULL,notes TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(user_id,job_id));
+ CREATE TABLE IF NOT EXISTS web_job_access(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,PRIMARY KEY(user_id,job_id));
  CREATE TABLE IF NOT EXISTS extension_tokens(user_id TEXT PRIMARY KEY REFERENCES users(id),token TEXT NOT NULL,expires INTEGER NOT NULL);`)
   if (path !== ':memory:')
     for (const file of [path, path + '-wal', path + '-shm'])
@@ -210,6 +212,29 @@ export function createApp(
       .prepare('SELECT data FROM sources')
       .all()
       .map((r: any) => JSON.parse(r.data) as Source)
+  const webDiscovery = createWebDiscovery(db, env, options.fetcher || fetch)
+  db.prepare('INSERT OR IGNORE INTO sources VALUES(?,?)').run(
+    WEB_SOURCE_ID,
+    JSON.stringify({
+      id: WEB_SOURCE_ID,
+      name: 'Google Jobs web index',
+      type: 'google_jobs',
+      slug: '',
+      enabled: false,
+      lastRun: null,
+      lastError: null,
+      jobCount: 0,
+    }),
+  )
+  if (
+    webDiscovery.status().configured &&
+    !db.prepare("SELECT key FROM system_meta WHERE key='web-discovery-activated'").get()
+  ) {
+    const source = listSources().find((s) => s.id === WEB_SOURCE_ID)!
+    source.enabled = true
+    db.prepare('UPDATE sources SET data=? WHERE id=?').run(JSON.stringify(source), source.id)
+    db.prepare("INSERT INTO system_meta VALUES('web-discovery-activated','yes')").run()
+  }
   const lease = options.worker === false ? null : acquireWorkerLease(db)
   const accounts = accountSecurity(db, {
     env,
@@ -260,6 +285,7 @@ export function createApp(
       finishedAt: null,
       jobsFound: 0,
       error: null,
+      coverage: [],
     }
     billing.reserveDiscovery(uid, run.id)
     activity.context(run.id, context.trigger || 'manual', context.requestId)
@@ -273,21 +299,31 @@ export function createApp(
       for (const source of sources) {
         if (closed) break
         try {
-          const jobs = await collect(source, getSettings().maxJobsPerSource, fetcher)
+          const { jobs, coverage } =
+            source.id === WEB_SOURCE_ID
+              ? await webDiscovery.search(getProfile(uid), getSettings().maxJobsPerSource)
+              : await collectWithCoverage(source, getSettings().maxJobsPerSource, fetcher)
+          run.coverage!.push(coverage)
           if (closed) break
           const foundIds = new Set(jobs.map((j) => j.id))
           for (const row of db.prepare('SELECT id,data FROM jobs').all() as any[]) {
             const old = JSON.parse(row.data)
-            if (old.source === source.id && !foundIds.has(old.id)) {
+            if (
+              source.id !== WEB_SOURCE_ID &&
+              coverage.status === 'completed' &&
+              old.source === source.id &&
+              !foundIds.has(old.id)
+            ) {
               old.available = false
               db.prepare('UPDATE jobs SET data=? WHERE id=?').run(JSON.stringify(old), row.id)
             }
           }
           for (const job of jobs) {
-            db.prepare('INSERT OR REPLACE INTO jobs VALUES(?,?)').run(
-              job.id,
-              JSON.stringify({ ...job, available: true }),
-            )
+            db.prepare(
+              'INSERT INTO jobs VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
+            ).run(job.id, JSON.stringify({ ...job, available: true }))
+            if (source.id === WEB_SOURCE_ID)
+              db.prepare('INSERT OR IGNORE INTO web_job_access VALUES(?,?)').run(uid, job.id)
             found.add(job.id)
           }
           source.jobCount = jobs.length
@@ -296,6 +332,16 @@ export function createApp(
         } catch (e) {
           source.lastError = (e as Error).message
           errors.push(`${source.name}: ${source.lastError}`)
+          run.coverage!.push({
+            source: source.id,
+            name: source.name,
+            status: 'failed',
+            pages: 0,
+            jobs: 0,
+            queries: [],
+            omittedQueries: 0,
+            note: source.lastError,
+          })
         }
         if (!closed) {
           const current = listSources().find((s) => s.id === source.id)
@@ -343,9 +389,15 @@ export function createApp(
       .get(uid, job.id) as any
     return { ...job, matchScore: m.score, matchReasons: m.reasons, status: a?.status || null }
   }
+  const visibleJob = (job: Job, user: string) =>
+    job.source !== WEB_SOURCE_ID ||
+    Boolean(
+      db.prepare('SELECT 1 FROM web_job_access WHERE user_id=? AND job_id=?').get(user, job.id),
+    ) ||
+    Boolean(db.prepare('SELECT 1 FROM applications WHERE user_id=? AND job_id=?').get(user, job.id))
   const jobById = (id: string, uid: string) => {
     const row = db.prepare('SELECT data FROM jobs WHERE id=?').get(id) as any
-    if (!row) throw new HttpError(404, 'Job not found')
+    if (!row || !visibleJob(JSON.parse(row.data), uid)) throw new HttpError(404, 'Job not found')
     return decorate(row.data, uid)
   }
   const application = (row: any): Application => ({
@@ -667,7 +719,9 @@ export function createApp(
     }),
   )
   app.get('/api/settings', (_req, res) => res.json({ settings: getSettings() }))
-  app.get('/api/sources', (_req, res) => res.json({ sources: listSources() }))
+  app.get('/api/sources', (_req, res) =>
+    res.json({ sources: listSources(), webDiscovery: webDiscovery.status() }),
+  )
   app.get(
     '/api/ai/status',
     route(async (_req, res) => res.json(await aiStatus())),
@@ -682,6 +736,7 @@ export function createApp(
         .map((r: any) => decorate(r.data, uid(req)))
         .filter(
           (j) =>
+            visibleJob(j, uid(req)) &&
             j.available !== false &&
             listSources().some((s) => s.id === j.source && s.enabled) &&
             match(j, p).eligible,
@@ -695,6 +750,13 @@ export function createApp(
       if (req.query.remote === 'true') jobs = jobs.filter((j) => j.remote)
       if (req.query.source) jobs = jobs.filter((j) => j.source === req.query.source)
       if (req.query.saved === 'true') jobs = jobs.filter((j) => !!j.status)
+      const seenUrls = new Set<string>()
+      jobs = jobs.filter((job) => {
+        const url = canonicalJobUrl(job.url)
+        if (seenUrls.has(url)) return false
+        seenUrls.add(url)
+        return true
+      })
       jobs.sort((a, b) => b.matchScore - a.matchScore || b.fetchedAt.localeCompare(a.fetchedAt))
       const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100))
       res.json({ jobs: jobs.slice(0, limit), total: jobs.length })
@@ -950,7 +1012,7 @@ export function createApp(
         .partial()
         .parse(req.body)
       Object.assign(source, p)
-      if (source.type !== 'arbeitnow' && !source.slug)
+      if (!['arbeitnow', 'google_jobs'].includes(source.type) && !source.slug)
         throw new HttpError(400, 'Board identifier is required')
       db.prepare('UPDATE sources SET data=? WHERE id=?').run(JSON.stringify(source), source.id)
       res.json({ source })
@@ -959,6 +1021,8 @@ export function createApp(
   app.delete(
     '/api/admin/sources/:id',
     route((req, res) => {
+      if (req.params.id === WEB_SOURCE_ID)
+        throw new HttpError(400, 'Pause the built-in web index instead of deleting it')
       const r = db.prepare('DELETE FROM sources WHERE id=?').run(String(req.params.id))
       if (!r.changes) throw new HttpError(404, 'Source not found')
       res.json({ ok: true })
@@ -972,16 +1036,24 @@ export function createApp(
       const apps = db
         .prepare('SELECT status FROM applications WHERE user_id=?')
         .all(user.id) as any[]
+      const seen = new Set<string>()
       const jobs = db
         .prepare('SELECT data FROM jobs')
         .all()
         .filter((r: any) => {
           const job = JSON.parse(r.data)
           return (
+            visibleJob(job, user.id) &&
             job.available !== false &&
             listSources().some((s) => s.id === job.source && s.enabled) &&
             match(job, p).eligible
           )
+        })
+        .filter((r: any) => {
+          const url = canonicalJobUrl(JSON.parse(r.data).url)
+          if (seen.has(url)) return false
+          seen.add(url)
+          return true
         }).length
       res.json({
         user,
