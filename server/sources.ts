@@ -228,6 +228,17 @@ export function match(
       : []
   if (levels.length) {
     const title = job.title.toLowerCase()
+    const years =
+      title.match(/(?:\b)(\d{1,2})\s*(?:[-–]|to)\s*\d{1,2}\s*(?:years?|yrs?)\b/) ||
+      title.match(/\b(\d{1,2})\+?\s*(?:years?|yrs?)\b/)
+    const requirementYears = job.description.match(
+      /\b(?:qualifications?|requirements?|minimum|at\s+least)\b[\s\S]{0,160}?(\d{1,2})(?:\s*(?:[-–]|to)\s*\d{1,2})?\s*(?:\+|plus)?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:relevant\s+|professional\s+|commercial\s+)?experience\b/i,
+    )
+    const minimumYears = years
+      ? Number(years[1])
+      : requirementYears
+        ? Number(requirementYears[1])
+        : null
     const level = /intern|trainee|apprentice/.test(title)
       ? 'Internship'
       : /\blead\b|head of|director|principal/.test(title)
@@ -238,8 +249,24 @@ export function match(
             ? 'Entry level'
             : /mid.level|intermediate/.test(title)
               ? 'Mid level'
-              : null
+              : minimumYears !== null
+                ? minimumYears >= 6
+                  ? 'Senior'
+                  : minimumYears >= 3
+                    ? 'Mid level'
+                    : 'Entry level'
+                : null
     if (level && !levels.includes(level)) eligible = false
+    if (
+      minimumYears !== null &&
+      minimumYears >= 3 &&
+      levels.every((level) => ['Internship', 'Entry level'].includes(level))
+    )
+      eligible = false
+    if (requirementYears)
+      reasons.push(
+        `Published experience requirement: at least ${Number(requirementYears[1])} years; verify with employer`,
+      )
     reasons.push(
       level ? `Experience: ${level}` : 'Experience not stated in title; check the full description',
     )

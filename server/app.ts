@@ -31,6 +31,7 @@ import type {
 } from '../shared/types.ts'
 import { collectWithCoverage, match, limitedJson, canonicalJobUrl } from './sources.ts'
 import { createWebDiscovery, WEB_SOURCE_ID } from './web-discovery.ts'
+import { profileGuidance } from './profile-guidance.ts'
 import { analyze } from './resume.ts'
 const now = () => new Date().toISOString()
 const hash = (s: string) => createHash('sha256').update(s).digest('hex')
@@ -727,6 +728,29 @@ export function createApp(
       if (p.scheduleEnabled) billing.guard(uid(req), 'schedule')
       db.prepare('UPDATE profiles SET data=? WHERE user_id=?').run(JSON.stringify(p), uid(req))
       res.json(p)
+    }),
+  )
+  app.post(
+    '/api/profile/guidance',
+    route((req, res) => {
+      const input = z
+        .object({
+          roles: strings,
+          skills: strings,
+          locations: strings,
+          experienceLevels: z
+            .array(z.enum(['Internship', 'Entry level', 'Mid level', 'Senior', 'Lead']))
+            .max(5)
+            .optional(),
+        })
+        .strict()
+        .parse(req.body)
+      res.json(
+        profileGuidance(input, {
+          enabled: listSources().filter((source) => source.enabled).length,
+          webConfigured: webDiscovery.status().configured,
+        }),
+      )
     }),
   )
   app.get('/api/settings', (_req, res) => res.json({ settings: getSettings() }))

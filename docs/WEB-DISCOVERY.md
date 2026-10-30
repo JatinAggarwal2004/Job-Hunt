@@ -23,6 +23,6 @@ Each run checks the provider’s [free Account API](https://serpapi.com/account-
 
 ## Verification status
 
-Local fixture tests cover multiple application platforms, fixed-host pagination, omitted queries, repeated tokens, Free-only guards, private errors, shared budgets and cross-user visibility. Actual provider account activation and a real hosted search remain pending; absent private configuration, the UI explicitly says wider search is not connected. No new provider searches or charges were made during fixture testing.
+Local fixture tests cover multiple application platforms, fixed-host pagination, omitted queries, repeated tokens, Free-only guards, private errors, shared budgets and cross-user visibility. On31 October2026 the owner verified an Active$0Free account, explicitly approved private Railway key storage and up to6Free test searches. The hosted backend completed2GoogleJobs index pages for “Software Engineer jobs in India”, normalized17indexed listings and retained employer/platform application links. The provider dashboard confirmed248/250remaining. The private key exists only in provider/Railway configuration; no key was printed, stored in a local file, or committed. No paid plan was activated. Wider search is now enabled with the200shared monthly cap.
 
 Provider contract: [Google Jobs API](https://serpapi.com/google-jobs-api). This adapter does not use a language model to invent openings or bypass platform access restrictions.

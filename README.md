@@ -1,6 +1,6 @@
 # Job-Hunter
 
-A job-search workspace with real discovery, persistent accounts, resume review and reviewed application preparation. React + Vite + TypeScript + Tailwind + Framer Motion frontend; Node/Express + SQLite backend. Includes subscription/admin controls and optional local or hosted AI. No paid service is activated.
+A job-search workspace with real discovery, persistent accounts, resume review and reviewed application preparation. React + Vite + TypeScript + Tailwind + Framer Motion frontend; Node/Express + SQLite backend. Includes subscription/admin controls and optional local or hosted AI. No paid service is activated; the explicitly connected SerpApi Free account supports bounded web-index searches.
 
 ## Cloud hosting status
 
@@ -33,6 +33,7 @@ Build checks types and creates frontend `dist/` plus executable backend `build/s
 - Optional Google Jobs web-index discovery through an explicitly connected, verified SerpApi Free account. Searches role/location combinations, preserves platform application links, reports actual query/page coverage and omissions. Six searches/run, two pages/query, default200 shared searches/month (hard cap250), with persistent budget reservations; paid/unknown plans fail closed. See [setup and limits](docs/WEB-DISCOVERY.md).
 - Paginated public-feed collection from Arbeitnow (up to five pages within the configured result cap), plus configurable Greenhouse, Lever and Ashby company boards. Add any supported company slug in Admin studio. Arbeitnow is the initial connected source; its coverage is primarily European. The source registry is deliberately explicit rather than a claim to cover every employer.
 - Account-owned discovered results: new accounts start at0 and receive results only from their scans; shared source catalogue counts are not personal opportunities. Existing tracked jobs retain access.
+- Server-driven profile-readiness diagnostics and optional curated skill suggestions (no model calls or silent profile changes).
 - Searchable multiple-choice roles, skills, India/international locations and experience levels, optional role-based skill suggestions and hover/focus/tap help. Custom roles/locations are supported; unknown seniority stays explicit.
 - Deduplicated canonical job URLs, preserved query-based job IDs, source freshness/errors, explained preference matching and unknown salary/headcount labels. Remote is checked against preferred geography; it is not treated as worldwide automatically.
 - Daily timezone-aware scheduled searches with persisted daily deduplication and catch-up after a late start. **The server must remain running**; this is not an always-on cloud scheduler. Discovery never submits applications.

@@ -1638,6 +1638,37 @@ function ProfileView({
         ? [profile.experience]
         : [],
   })
+  const [guidance, setGuidance] = useState<{
+    suggestedSkills: string[]
+    ready: boolean
+    steps: string[]
+    summary: string
+  } | null>(null)
+  useEffect(() => {
+    let current = true
+    const timer = setTimeout(() => {
+      void api<{ suggestedSkills: string[]; ready: boolean; steps: string[]; summary: string }>(
+        '/profile/guidance',
+        'POST',
+        {
+          roles: draft.roles,
+          skills: draft.skills,
+          locations: draft.locations,
+          experienceLevels: draft.experienceLevels,
+        },
+      )
+        .then((result) => {
+          if (current) setGuidance(result)
+        })
+        .catch(() => {
+          if (current) setGuidance(null)
+        })
+    }, 250)
+    return () => {
+      current = false
+      clearTimeout(timer)
+    }
+  }, [draft.roles, draft.skills, draft.locations, draft.experienceLevels])
   function field<K extends keyof Profile>(key: K, value: Profile[K]) {
     setDraft((old) => ({ ...old, [key]: value }))
   }
@@ -1664,6 +1695,26 @@ function ProfileView({
             <h2>Your direction</h2>
             <CompassIcon />
           </div>
+          {guidance && (
+            <div className="ws-profile-guidance" aria-live="polite">
+              <strong>
+                {guidance.ready
+                  ? 'Your search direction is ready'
+                  : 'A few choices will improve your search'}
+              </strong>
+              <p>{guidance.summary}</p>
+              {guidance.steps.length > 0 && (
+                <ul>
+                  {guidance.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+              )}
+              <small>
+                Guidance uses curated rules. Verify every opening and requirement with the employer.
+              </small>
+            </div>
+          )}
           <p className="ws-muted">
             Start with roles, then choose skills and locations. Examples are suggestions, never
             facts added to your profile automatically.
@@ -1681,7 +1732,7 @@ function ProfileView({
             hint="Select skills you can explain or demonstrate. These help explain matches and resume feedback; they are not strict requirements for every job."
             values={draft.skills}
             options={skillOptions}
-            suggestions={suggestedSkills(draft.roles)}
+            suggestions={guidance?.suggestedSkills ?? suggestedSkills(draft.roles)}
             onChange={(values) => field('skills', values)}
             placeholder="Try Java, React or communication"
           />

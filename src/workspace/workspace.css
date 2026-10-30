@@ -2086,3 +2086,18 @@
     max-width: none;
   }
 }
+
+.ws-profile-guidance {
+  border-left: 3px solid var(--ws-accent);
+  padding: 4px 0 4px 16px;
+  margin-bottom: 20px;
+}
+.ws-profile-guidance p,
+.ws-profile-guidance ul {
+  margin: 6px 0;
+  font-size: 13px;
+}
+.ws-profile-guidance small {
+  color: var(--muted);
+  font-size: 11px;
+}

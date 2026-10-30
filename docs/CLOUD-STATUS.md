@@ -26,4 +26,4 @@ Sources: [Railway plans](https://docs.railway.com/pricing/plans), [Railway outbo
 
 ## Wider discovery preparation
 
-Added a Free-only Google Jobs index adapter and feed pagination with honest per-run coverage, per-user result access and persistent usage caps. Provider connection is not yet active: owner SerpApi Free setup/approval remains pending. Existing hosted feeds keep working. See [setup and limits](WEB-DISCOVERY.md).
+Added a Free-only Google Jobs index adapter and feed pagination with honest per-run coverage, per-user result access and persistent usage caps. Provider connection activated31 October2026 after explicit owner approval: Active$0Free/250monthly plan verified, private Railway key+opt-in+200shared cap deployed. Actual hosted India query returned17indexed listings over2pages; providerremaining248confirmed. Existing hosted feeds keep working. See [setup and limits](WEB-DISCOVERY.md).

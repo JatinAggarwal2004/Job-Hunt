@@ -61,3 +61,11 @@ CUA isolated account on3004 started at0 despite another account’s scan. Select
 Two explicitly requested REA agents produced [Tsenta](rea-tsenta/findings.md) and [Jobright](rea-jobright/findings.md) reports from actual shipped frontend artifacts and public UI. Neither recovers private backend code or establishes exhaustive ingestion/application success. No paid operations, new credentials or competitor accounts.
 
 Migration: existing web-result memberships are retained. Previously global feed records are not retroactively attributed to accounts; an existing user may need a fresh scan to populate personal discovery. Saved applications remain accessible. Google Jobs provider activation remains pending.
+
+## Live web index and independent backend guidance — 31 October2026
+
+Owner approved existing SerpApi key transfer solely to Railway private `SERPAPI_API_KEY`, web opt-in/200monthly cap, and up to6Free test searches. Actual account Active/Free/$0/250verified. Private settings deploymentc44a382f ACTIVE. One hosted account scan sent “Software Engineer jobs in India”; web coverage reports2pages,17normalized indexed listings, bounded/limited coverage. Provider dashboard now248remaining:2Free searches used, no paid activation. Real employer/Cargill, BuiltIn, LinkedIn andBeBee links were observed in a normalized job modal. Opening/validity/submission with those employers was not tested.
+
+A live result exposed 4–8years title and a Qualifications6plusyears description being treated unknown under Internship. Added explicit title-year and nearby qualifications/minimum-experience checks, with regression controls excluding unrelated “company founded6years ago” text. Unknown experience remains advisory.
+
+Authenticated strict `/profile/guidance` now supplies curated role-based skill examples and readiness steps without a model/provider call or persisting draft data. Frontend consumes guidance with a debounced request and discards stale responses; offline rules remain fallback. CUA isolated browser confirmed missing-role/location/source guidance. Final `npm run check`:65APIchecks, build/types/format pass. This implements independent workflow patterns informed by public REA findings; it does not reuse private competitor backend code or establish full feature parity.
