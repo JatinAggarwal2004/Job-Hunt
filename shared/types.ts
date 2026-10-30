@@ -1,6 +1,15 @@
+import type { SetupState } from './onboarding.ts'
 import type { Entitlements } from './billing.ts'
 export type Page =
-  'overview' | 'discover' | 'resume' | 'applications' | 'profile' | 'settings' | 'admin' | 'billing'
+  | 'setup'
+  | 'overview'
+  | 'discover'
+  | 'resume'
+  | 'applications'
+  | 'profile'
+  | 'settings'
+  | 'admin'
+  | 'billing'
 export type User = {
   id: string
   name: string
@@ -137,6 +146,7 @@ export type Settings = {
   aiConsentRequired?: boolean
 }
 export type Bootstrap = {
+  onboarding?: SetupState
   activity?: { enabled: boolean; retentionDays: number }
   entitlements: Entitlements
   emailVerificationRequired?: boolean

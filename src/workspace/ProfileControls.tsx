@@ -44,6 +44,7 @@ export function MultiChoice({
   onChange,
   placeholder = 'Search or add your own',
   suggestions = [],
+  suggestionLabel = 'Suggested from your roles · choose only what fits you',
   allowCustom = true,
 }: {
   label: string
@@ -53,6 +54,7 @@ export function MultiChoice({
   onChange: (values: string[]) => void
   placeholder?: string
   suggestions?: string[]
+  suggestionLabel?: string
   allowCustom?: boolean
 }) {
   const id = useId(),
@@ -160,7 +162,7 @@ export function MultiChoice({
       </details>
       {suggestions.filter((v) => !has(v)).length > 0 && (
         <div className="ws-choice-suggestions">
-          <span>Suggested from your roles · choose only what fits you</span>
+          <span>{suggestionLabel}</span>
           <div>
             {suggestions
               .filter((v) => !has(v))

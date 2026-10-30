@@ -2,6 +2,7 @@ import type { Entitlements } from './billing.ts'
 import type { Run } from './types.ts'
 export const activityPages = [
   'overview',
+  'setup',
   'discover',
   'resume',
   'applications',

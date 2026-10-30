@@ -1,6 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
+import { createOnboarding } from './onboarding.ts'
 import { createActivity } from './activity.ts'
 import { createBilling } from './billing.ts'
 import { accountSecurity, type MailSender } from './accounts.ts'
@@ -720,6 +721,8 @@ export function createApp(
   )
   app.use('/api', activity.router)
   app.get('/api/auth/me', (req, res) => res.json({ user: (req as any).user }))
+  const onboarding = createOnboarding(db, getProfile)
+  app.use('/api', onboarding.router)
   app.get('/api/profile', (req, res) => res.json(getProfile(uid(req))))
   app.put(
     '/api/profile',
@@ -1087,6 +1090,7 @@ export function createApp(
       res.json({
         user,
         profile: p,
+        onboarding: onboarding.get(user.id),
         overview: {
           jobs,
           saved: apps.filter((a) => a.status === 'saved').length,

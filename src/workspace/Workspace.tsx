@@ -64,6 +64,7 @@ import {
   experienceOptions,
   suggestedSkills,
 } from '../../shared/profile-options'
+import { QuickSetup } from './Setup'
 import { AIAdminControls } from './AISettings'
 type Action = (work: () => Promise<void>, success?: string) => Promise<void>
 const pages: { id: Page; label: string; icon: typeof Search }[] = [
@@ -290,11 +291,17 @@ export default function Workspace() {
     page,
     Boolean(boot?.activity?.enabled && !auth && !boot?.entitlements.blocked),
   )
+  const enteredUser = useRef<string | null>(null)
   const reduced = useReducedMotion()
   const refresh = useCallback(async () => {
     try {
       const result = await api<Bootstrap>('/bootstrap')
       setBoot(result)
+      if (enteredUser.current !== result.user.id) {
+        enteredUser.current = result.user.id
+        if (result.onboarding && !result.onboarding.completed && !result.onboarding.dismissed)
+          setPage('setup')
+      }
       setAuth(false)
       setRunning(result.overview.lastRun?.status === 'running')
     } catch (e) {
@@ -509,7 +516,9 @@ export default function Workspace() {
           </button>
           <div className="ws-breadcrumb">
             Workspace <ChevronRight size={14} />
-            <span>{pages.find((p) => p.id === page)?.label}</span>
+            <span>
+              {page === 'setup' ? 'Quick setup' : pages.find((p) => p.id === page)?.label}
+            </span>
           </div>
           <div className="ws-top-actions">
             <span className="ws-local-label">
@@ -571,6 +580,20 @@ export default function Workspace() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
           >
+            {page === 'setup' && (
+              <QuickSetup
+                boot={boot}
+                onExit={async () => {
+                  await refresh()
+                  go('overview')
+                }}
+                onComplete={async (search) => {
+                  await refresh()
+                  go(search ? 'discover' : 'overview')
+                  if (search) discover()
+                }}
+              />
+            )}
             {page === 'overview' && (
               <OverviewView boot={boot} go={go} discover={discover} busy={busy || running} />
             )}
@@ -596,6 +619,7 @@ export default function Workspace() {
             {page === 'profile' && (
               <ProfileView
                 profile={boot.profile}
+                onQuickSetup={() => go('setup')}
                 act={act}
                 busy={busy}
                 onSaved={async () => {
@@ -678,7 +702,7 @@ function OverviewView({
           </p>
           <Button
             primary
-            onClick={boot.profile.roles.length ? discover : () => go('profile')}
+            onClick={boot.profile.roles.length ? discover : () => go('setup')}
             disabled={busy}
           >
             {busy ? <LoaderCircle className="ws-spin" size={17} /> : <Search size={17} />}{' '}
@@ -1621,11 +1645,13 @@ function ApplicationCard({
 }
 function ProfileView({
   profile,
+  onQuickSetup,
   act,
   busy,
   onSaved,
 }: {
   profile: Profile
+  onQuickSetup: () => void
   act: Action
   busy: boolean
   onSaved: () => Promise<void>
@@ -1688,7 +1714,11 @@ function ProfileView({
         eyebrow="A SEARCH THAT GETS YOU"
         title="Make room for your kind of work."
         description="Choose the work, places and experience levels that fit you. Your next search uses these choices."
-      />
+      >
+        <Button onClick={onQuickSetup}>
+          Open quick setup <ArrowRight size={16} />
+        </Button>
+      </Heading>
       <form onSubmit={submit} className="ws-profile-form">
         <section className="ws-panel">
           <div className="ws-section-top">
