@@ -73,7 +73,7 @@ export type Application = {
 export type Source = {
   id: string
   name: string
-  type: 'arbeitnow' | 'greenhouse' | 'lever' | 'ashby' | 'google_jobs'
+  type: 'arbeitnow' | 'greenhouse' | 'lever' | 'ashby' | 'google_jobs' | 'career_discovery'
   slug: string
   enabled: boolean
   lastRun: string | null
@@ -90,6 +90,12 @@ export type Run = {
   error: string | null
 }
 export type SearchCoverage = {
+  checks?: {
+    name: string
+    status: 'completed' | 'limited' | 'failed'
+    jobs: number
+    note: string
+  }[]
   source: string
   name: string
   status: 'completed' | 'limited' | 'failed'

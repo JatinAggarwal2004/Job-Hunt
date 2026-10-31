@@ -1,6 +1,7 @@
 import express from 'express'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
+import { createCareerDiscovery, CAREER_SOURCE_ID } from './career-discovery.ts'
 import { createOnboarding } from './onboarding.ts'
 import { createActivity } from './activity.ts'
 import { createBilling } from './billing.ts'
@@ -30,7 +31,7 @@ import type {
   Application,
   ApplicationStatus,
 } from '../shared/types.ts'
-import { collectWithCoverage, match, limitedJson, canonicalJobUrl } from './sources.ts'
+import { type RawJob, collectWithCoverage, match, limitedJson, canonicalJobUrl } from './sources.ts'
 import { createWebDiscovery, WEB_SOURCE_ID } from './web-discovery.ts'
 import { profileGuidance } from './profile-guidance.ts'
 import { analyze } from './resume.ts'
@@ -221,6 +222,7 @@ export function createApp(
       .prepare('SELECT data FROM sources')
       .all()
       .map((r: any) => JSON.parse(r.data) as Source)
+  const careerDiscovery = createCareerDiscovery(db, options.fetcher || fetch)
   const webDiscovery = createWebDiscovery(db, env, options.fetcher || fetch)
   db.prepare('INSERT OR IGNORE INTO sources VALUES(?,?)').run(
     WEB_SOURCE_ID,
@@ -304,15 +306,23 @@ export function createApp(
       const errors: string[] = []
       let successes = 0
       const found = new Set<string>()
-      const sources = listSources().filter((s) => s.enabled)
+      const indexed: RawJob[] = []
+      const sources = listSources()
+        .filter((s) => s.enabled)
+        .sort((a, b) => Number(a.id === CAREER_SOURCE_ID) - Number(b.id === CAREER_SOURCE_ID))
       for (const source of sources) {
         if (closed) break
         try {
           const { jobs, coverage } =
-            source.id === WEB_SOURCE_ID
-              ? await webDiscovery.search(getProfile(uid), getSettings().maxJobsPerSource)
-              : await collectWithCoverage(source, getSettings().maxJobsPerSource, fetcher)
+            source.id === CAREER_SOURCE_ID
+              ? await careerDiscovery.search(getProfile(uid), indexed)
+              : source.id === WEB_SOURCE_ID
+                ? await webDiscovery.search(getProfile(uid), getSettings().maxJobsPerSource)
+                : await collectWithCoverage(source, getSettings().maxJobsPerSource, fetcher)
           run.coverage!.push(coverage)
+          if (source.id === CAREER_SOURCE_ID && coverage.checks?.some((c) => c.status === 'failed'))
+            errors.push('Some employer career checks failed; see coverage for details.')
+          if (source.id === WEB_SOURCE_ID) indexed.push(...jobs)
           if (closed) break
           const foundIds = new Set(jobs.map((j) => j.id))
           for (const row of db.prepare('SELECT id,data FROM jobs').all() as any[]) {
@@ -328,6 +338,7 @@ export function createApp(
             }
           }
           for (const job of jobs) {
+            if (found.has(job.id)) continue
             db.prepare(
               'INSERT INTO jobs VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
             ).run(job.id, JSON.stringify({ ...job, available: true }))
@@ -1013,6 +1024,53 @@ export function createApp(
       sources: listSources(),
       runs: getRuns(),
       settings: getSettings(),
+    }),
+  )
+  app.get('/api/admin/career-sites', (_req, res) => res.json({ sites: careerDiscovery.sites() }))
+  app.post(
+    '/api/admin/career-sites',
+    route((req, res) => {
+      const { url } = z
+        .object({ url: z.string().max(2000) })
+        .strict()
+        .parse(req.body)
+      try {
+        res.json({ url: careerDiscovery.addSite(url) })
+      } catch (e) {
+        throw new HttpError(400, (e as Error).message)
+      }
+    }),
+  )
+  app.delete(
+    '/api/admin/career-sites',
+    route((req, res) => {
+      const { url } = z
+        .object({ url: z.string().max(2000) })
+        .strict()
+        .parse(req.body)
+      careerDiscovery.removeSite(url)
+      res.json({ ok: true })
+    }),
+  )
+  app.post(
+    '/api/admin/career-discovery',
+    route((req, res) => {
+      const { enabled } = z.object({ enabled: z.boolean() }).strict().parse(req.body)
+      const source: Source = listSources().find((s) => s.id === CAREER_SOURCE_ID) || {
+        id: CAREER_SOURCE_ID,
+        name: 'Automatic career discovery',
+        type: 'career_discovery',
+        slug: '',
+        enabled: false,
+        lastRun: null,
+        lastError: null,
+        jobCount: 0,
+      }
+      source.enabled = enabled
+      db.prepare(
+        'INSERT INTO sources VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
+      ).run(source.id, JSON.stringify(source))
+      res.json({ source })
     }),
   )
   app.patch(

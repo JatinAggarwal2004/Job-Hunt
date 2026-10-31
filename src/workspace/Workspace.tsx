@@ -64,6 +64,7 @@ import {
   experienceOptions,
   suggestedSkills,
 } from '../../shared/profile-options'
+import { CareerAdmin } from './CareerAdmin'
 import { QuickSetup } from './Setup'
 import { AIAdminControls } from './AISettings'
 type Action = (work: () => Promise<void>, success?: string) => Promise<void>
@@ -914,7 +915,7 @@ function Discover({
         <p>
           {webStatus?.configured
             ? `Web index connected: up to ${webStatus.maxRequestsPerRun} searches per run, ${webStatus.maxPagesPerQuery} pages per role/location query, and ${webStatus.monthlyCap} shared searches per month.`
-            : 'Wider web search is not connected yet. Currently only enabled feeds and company boards are checked. Ask your administrator to connect the free web-search provider.'}{' '}
+            : 'The web index is not connected. Enabled feeds and employer career sources still work. An administrator can connect the free web-search provider to discover more employer links.'}{' '}
           No index covers every job. Remote does not guarantee eligibility in your country. Missing
           salary and company size stay unknown.
         </p>
@@ -933,6 +934,19 @@ function Discover({
               </ul>
             )}
             <p>{item.note}</p>
+            {item.checks && (
+              <details>
+                <summary>Employer checks ({item.checks.length})</summary>
+                <ul>
+                  {item.checks.map((check, i) => (
+                    <li key={`${check.name}-${i}`}>
+                      <strong>{check.name}</strong> · {check.status} · {check.jobs} collected
+                      <p>{check.note}</p>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         ))}
         {sources.map((s) => (
@@ -2221,6 +2235,12 @@ function Admin({
         title="Shape the workspace."
         description="Real controls for connected sources, discovery, appearance, and AI."
       />
+      <CareerAdmin
+        enabled={sources.some((s) => s.type === 'career_discovery' && s.enabled)}
+        changed={load}
+        act={act}
+        busy={busy}
+      />
       {settings && (
         <form className="ws-panel" onSubmit={submit}>
           <div className="ws-section-top">
@@ -2300,8 +2320,11 @@ function Admin({
                 <strong>{s.name}</strong>
                 <span className="ws-pill">{s.type}</span>
                 <p>
-                  {s.slug || 'Public aggregate feed'} · {s.jobCount} roles in the last source check
-                  · {date(s.lastRun)}
+                  {s.slug ||
+                    (s.type === 'career_discovery'
+                      ? 'Direct employer sites & detected boards'
+                      : 'Public aggregate feed')}{' '}
+                  · {s.jobCount} roles in the last source check · {date(s.lastRun)}
                 </p>
                 {s.lastError && <p className="ws-error">{s.lastError}</p>}
               </div>
