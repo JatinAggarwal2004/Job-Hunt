@@ -209,6 +209,7 @@ export function accountSecurity(
   return {
     publicRouter,
     privateRouter,
+    sendMail,
     issue,
     mailReady: smtpReady || Boolean(httpsSender || options.sendMail),
     settle: () => Promise.all([...deliveries]),

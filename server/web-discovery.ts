@@ -1,3 +1,4 @@
+import { employerDeadline } from './deadlines.ts'
 import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
 import { isIP } from 'node:net'
@@ -54,6 +55,7 @@ export function normalizeIndexedJobs(items: unknown[], limit: number): RawJob[] 
       .slice(0, 24)
     jobs.set(id, {
       id,
+      deadlineAt: employerDeadline(item.valid_through, clean(item.description)),
       title,
       company,
       location: clean(item.location),

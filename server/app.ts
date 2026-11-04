@@ -1,3 +1,10 @@
+import { createSemantic } from './semantic.ts'
+import { semanticContext, semanticReviews } from './semantic-review.ts'
+import { createRetrieval } from './retrieval.ts'
+import { createGroundedGeneration } from './grounded-ai.ts'
+import { extractProfile } from './profile-extraction.ts'
+import { reviewResume } from './job-review.ts'
+import { createAlerts } from './alerts.ts'
 import express from 'express'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
@@ -255,6 +262,15 @@ export function createApp(
   const billing = createBilling(db, { fetcher: options.fetcher, env })
   billing.recoverReservations()
   const intelligence = createIntelligence(db, { env, fetcher: options.fetcher })
+  const semantic = createSemantic(
+    db,
+    resolve(dirname(path), 'models'),
+    env.ENABLE_SEMANTIC_MODEL === 'true' ||
+      (config.production && env.ENABLE_SEMANTIC_MODEL !== 'false'),
+  )
+  const retrieval = createRetrieval(db)
+  const groundedGeneration = createGroundedGeneration(db, env, options.fetcher || fetch)
+  const alerts = createAlerts(db, accounts.mailReady ? accounts.sendMail : null, config.origin)
   const activity = createActivity(db, billing.summary)
   const userFrom = (row: any): User => ({
     id: row.id,
@@ -342,6 +358,7 @@ export function createApp(
             db.prepare(
               'INSERT INTO jobs VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
             ).run(job.id, JSON.stringify({ ...job, available: true }))
+            retrieval.index(job)
             db.prepare('INSERT OR IGNORE INTO discovered_jobs VALUES(?,?)').run(uid, job.id)
             found.add(job.id)
           }
@@ -795,6 +812,17 @@ export function createApp(
       }
       if (req.query.remote === 'true') jobs = jobs.filter((j) => j.remote)
       if (req.query.source) jobs = jobs.filter((j) => j.source === req.query.source)
+      if (req.query.deadline === 'true') jobs = jobs.filter((j) => Boolean(j.deadlineAt))
+      if (req.query.exclude) {
+        const excluded = String(req.query.exclude)
+          .slice(0, 200)
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+        jobs = jobs.filter(
+          (j) => !excluded.some((t) => `${j.title} ${j.description}`.toLowerCase().includes(t)),
+        )
+      }
       if (req.query.saved === 'true') jobs = jobs.filter((j) => !!j.status)
       const seenUrls = new Set<string>()
       jobs = jobs.filter((job) => {
@@ -804,8 +832,154 @@ export function createApp(
         return true
       })
       jobs.sort((a, b) => b.matchScore - a.matchScore || b.fetchedAt.localeCompare(a.fetchedAt))
-      const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100))
-      res.json({ jobs: jobs.slice(0, limit), total: jobs.length })
+      const limit = z.coerce.number().int().min(1).max(200).default(40).parse(req.query.limit)
+      const offset = z.coerce.number().int().min(0).max(1000000).default(0).parse(req.query.offset)
+      const page = jobs.slice(offset, offset + limit)
+      res.json({
+        jobs: page,
+        total: jobs.length,
+        offset,
+        limit,
+        nextOffset: offset + page.length < jobs.length ? offset + page.length : null,
+      })
+    }),
+  )
+  app.post(
+    '/api/assistant/query',
+    route(async (req, res) => {
+      const { question, jobId, useAi, consent } = z
+        .object({
+          question: z.string().trim().min(2).max(1000),
+          jobId: z.string().max(100).optional(),
+          useAi: z.boolean().default(false),
+          consent: z.boolean().default(false),
+        })
+        .strict()
+        .parse(req.body)
+      if (jobId) jobById(jobId, uid(req))
+      const eligible = (job: Job) =>
+        listSources().some((s) => s.id === job.source && s.enabled) &&
+        match(job, getProfile(uid(req))).eligible
+      let context = retrieval.retrieve(
+        uid(req),
+        question,
+        eligible,
+        jobId,
+        semantic.status().enabled ? 31 : 6,
+      )
+      if (semantic.status().enabled)
+        try {
+          context = await semanticContext(uid(req), question, context, semantic.encode)
+        } catch {
+          context = {
+            ...context,
+            evidence: context.candidateOnly ? [] : context.evidence.slice(0, 6),
+            answer: context.candidateOnly
+              ? 'No lexical evidence was found, and semantic matching is unavailable. Try a specific role, skill or job requirement.'
+              : context.answer,
+            notice:
+              context.notice +
+              ' Local semantic model unavailable; this response uses lexical retrieval only.',
+          }
+        }
+      if (useAi) {
+        billing.guard(uid(req), 'ai')
+        res.json(await groundedGeneration(uid(req), question, context, getSettings(), consent))
+      } else res.json(context)
+    }),
+  )
+  app.post(
+    '/api/jobs/:id/compare-resumes',
+    route(async (req, res) => {
+      const job = jobById(String(req.params.id), uid(req))
+      const { resumeIds, useAi, consent } = z
+        .object({
+          resumeIds: z.array(z.string().min(1).max(100)).min(1).max(5),
+          useAi: z.boolean().default(false),
+          consent: z.boolean().default(false),
+        })
+        .strict()
+        .parse(req.body)
+      const resumes = [...new Set(resumeIds)].map((id) => resumeById(id, uid(req)))
+      if (useAi) billing.guard(uid(req), 'ai')
+      let reviews = []
+      for (const resume of resumes) {
+        const review = reviewResume(resume, job, getProfile(uid(req)))
+        const wording = useAi
+          ? await intelligence.run(
+              uid(req),
+              analyze(resume.text, getProfile(uid(req)), job.description),
+              resume.text,
+              getSettings(),
+              { consent, jobDescription: job.description },
+            )
+          : undefined
+        if (resumeById(resume.id, uid(req)).text !== resume.text)
+          throw new HttpError(409, 'Resume changed during review. Run the comparison again.')
+        reviews.push({ ...review, wording })
+      }
+      if (semantic.status().enabled)
+        try {
+          reviews = await semanticReviews(uid(req), job, resumes, reviews, semantic.encode)
+        } catch {
+          reviews = reviews.map((r) => ({
+            ...r,
+            notice: r.notice + ' Semantic model unavailable; this score uses evidence rules only.',
+          }))
+        }
+      for (const resume of resumes)
+        if (resumeById(resume.id, uid(req)).text !== resume.text)
+          throw new HttpError(409, 'Resume changed during review. Run the comparison again.')
+      reviews.sort(
+        (a, b) => (b.score ?? -1) - (a.score ?? -1) || a.filename.localeCompare(b.filename),
+      )
+      res.json({ jobId: job.id, reviews })
+    }),
+  )
+  app.get('/api/alerts', (req, res) =>
+    res.json({
+      alerts: alerts.list(uid(req)),
+      emailReady: alerts.emailReady,
+      notice:
+        'In-app reminders appear when due. Email requires a running server and may be delayed on the free host.',
+    }),
+  )
+  app.post(
+    '/api/alerts',
+    route((req, res) => {
+      const { jobId, deadlineAt, remindAt, emailEnabled } = z
+        .object({
+          jobId: z.string().min(1).max(100),
+          deadlineAt: z.string().datetime({ offset: true }),
+          remindAt: z.string().datetime({ offset: true }),
+          emailEnabled: z.boolean().default(false),
+        })
+        .strict()
+        .parse(req.body)
+      if (emailEnabled && !(req as any).user.emailVerified)
+        throw new HttpError(403, 'Verify your sign-in email before enabling email reminders.')
+      res.json({
+        alert: alerts.save(uid(req), jobById(jobId, uid(req)), deadlineAt, remindAt, emailEnabled),
+      })
+    }),
+  )
+  app.patch(
+    '/api/alerts/:id',
+    route((req, res) => {
+      z.object({ read: z.literal(true) })
+        .strict()
+        .parse(req.body)
+      if (!alerts.read(uid(req), String(req.params.id)).changes)
+        throw new HttpError(404, 'Alert not found')
+      res.json({ ok: true })
+    }),
+  )
+  app.delete(
+    '/api/alerts/:id',
+    route((req, res) => {
+      if (!alerts.remove(uid(req), String(req.params.id)).changes)
+        throw new HttpError(404, 'Alert not found')
+      res.json({ ok: true })
     }),
   )
   app.get(
@@ -846,6 +1020,7 @@ export function createApp(
       db.prepare(
         'INSERT INTO applications VALUES(?,?,?,?,?,?) ON CONFLICT(user_id,job_id) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at',
       ).run(id, uid(req), jobId, status, '', now())
+      if (['saved', 'preparing'].includes(status)) alerts.ensure(uid(req), jobById(jobId, uid(req)))
       res.json({
         application: application(db.prepare('SELECT * FROM applications WHERE id=?').get(id)),
       })
@@ -917,6 +1092,39 @@ export function createApp(
       const filename = f.originalname.replace(/[\\/\x00-\x1f]/g, '_').slice(0, 200)
       const text = await extractResume(f.buffer, filename, uid(req))
       res.status(201).json({ resume: createResume(text.slice(0, 100000), filename, uid(req)) })
+    }),
+  )
+  app.get(
+    '/api/resumes/:id/extract',
+    route((req, res) => res.json(extractProfile(resumeById(String(req.params.id), uid(req))))),
+  )
+  app.post(
+    '/api/resumes/:id/apply-profile',
+    route((req, res) => {
+      const { fields, includeSkills, includeRoles } = z
+        .object({
+          fields: z
+            .array(z.enum(['name', 'email', 'phone', 'website', 'linkedin', 'location']))
+            .max(6),
+          includeSkills: z.boolean().default(false),
+          includeRoles: z.boolean().default(false),
+        })
+        .strict()
+        .parse(req.body)
+      const extraction = extractProfile(resumeById(String(req.params.id), uid(req)))
+      const profile = getProfile(uid(req))
+      for (const field of extraction.fields)
+        if (fields.includes(field.key)) profile[field.key] = field.value
+      if (includeSkills)
+        profile.skills = [...new Set([...profile.skills, ...extraction.skills])].slice(0, 50)
+      if (includeRoles)
+        profile.roles = [...new Set([...profile.roles, ...extraction.suggestedRoles])].slice(0, 50)
+      const validated = profileSchema.parse(profile)
+      db.prepare('UPDATE profiles SET data=? WHERE user_id=?').run(
+        JSON.stringify(validated),
+        uid(req),
+      )
+      res.json({ profile: validated })
     }),
   )
   app.patch(
@@ -1169,6 +1377,7 @@ export function createApp(
         },
         settings: getSettings(),
         ai: await aiStatus(),
+        semantic: semantic.status(),
         entitlements: billing.summary(user.id),
         emailVerificationRequired: config.requireVerification,
         activity: activity.settings(),
@@ -1202,6 +1411,7 @@ export function createApp(
   })
   const tick = (time = new Date()) => {
     if (!closed) activity.prune()
+    if (!closed && (!lease || lease.valid())) void alerts.tick(time)
     if (closed || (lease && !lease.valid()) || !getSettings().discoveryEnabled) return
     for (const row of db.prepare('SELECT * FROM profiles').all() as any[]) {
       const p: Profile = JSON.parse(row.data)
@@ -1236,6 +1446,9 @@ export function createApp(
     tick,
     runDiscovery,
     intelligence,
+    retrieval,
+    semantic,
+    alerts,
     activity,
     billing,
     accounts,
@@ -1246,6 +1459,8 @@ export function createApp(
       closed = true
       await Promise.all([...pending])
       await accounts.settle()
+      await alerts.settle()
+      await semantic.close()
       billing.recoverReservations()
       lease?.release()
       db.close()

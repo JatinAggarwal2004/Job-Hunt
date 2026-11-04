@@ -3,6 +3,7 @@ import type { Run } from './types.ts'
 export const activityPages = [
   'overview',
   'setup',
+  'alerts',
   'discover',
   'resume',
   'applications',

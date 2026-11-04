@@ -19,11 +19,13 @@
     "test": "npm run test:api && npm run test:e2e",
     "check": "npm run build && npm run format:check && npm run test:api",
     "backup": "node --env-file-if-exists=.env scripts/backup.mjs",
-    "verify:deployment": "node --env-file-if-exists=.env scripts/verify-deployment.mjs"
+    "verify:deployment": "node --env-file-if-exists=.env scripts/verify-deployment.mjs",
+    "verify:semantic": "node --max-old-space-size=128 --import tsx scripts/verify-semantic.ts"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "5.3.0",
     "@fontsource-variable/manrope": "5.3.0",
+    "@huggingface/transformers": "4.3.2",
     "entities": "^9.0.0",
     "express": "5.3.0",
     "express-rate-limit": "^8.7.1",

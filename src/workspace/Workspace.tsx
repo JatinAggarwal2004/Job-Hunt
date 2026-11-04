@@ -15,7 +15,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import {
   ArrowUpRight,
   ArrowRight,
-  Bookmark,
+  Bell,
   BriefcaseBusiness,
   CalendarClock,
   CreditCard,
@@ -64,6 +64,9 @@ import {
   experienceOptions,
   suggestedSkills,
 } from '../../shared/profile-options'
+import { Discover } from './JobSearch'
+import { AlertsView } from './JobAlerts'
+import { ResumeIntake } from './ResumeIntake'
 import { CareerAdmin } from './CareerAdmin'
 import { QuickSetup } from './Setup'
 import { AIAdminControls } from './AISettings'
@@ -73,6 +76,7 @@ const pages: { id: Page; label: string; icon: typeof Search }[] = [
   { id: 'discover', label: 'Discover roles', icon: Search },
   { id: 'resume', label: 'Resume studio', icon: FileText },
   { id: 'applications', label: 'Applications', icon: BriefcaseBusiness },
+  { id: 'alerts', label: 'Deadlines & alerts', icon: Bell },
   { id: 'profile', label: 'Search & profile', icon: UserRound },
   { id: 'settings', label: 'Settings', icon: Settings2 },
   { id: 'billing', label: 'Membership', icon: CreditCard },
@@ -468,12 +472,18 @@ export default function Workspace() {
         <div className="ws-sidebar-note">
           <span className="ws-small-dot" />
           <strong>
-            {boot.ai.available ? 'Local AI connected' : 'Thoughtful, transparent tools'}
+            {boot.ai.available
+              ? 'Writing assistant connected'
+              : boot.semantic?.enabled
+                ? 'Local semantic matching'
+                : 'Thoughtful, transparent tools'}
           </strong>
           <p>
             {boot.ai.available
               ? boot.ai.model
-              : 'Resume scoring works without AI. Connect an approved model for optional writing suggestions.'}
+              : boot.semantic?.enabled
+                ? 'MiniLM adds semantic evidence to your job search and resume reviews. Every edit stays your choice.'
+                : 'Evidence-based resume reviews. Optional model-assisted writing can be configured in Admin.'}
           </p>
         </div>
         <div className="ws-account">
@@ -605,6 +615,8 @@ export default function Workspace() {
                 busy={busy}
                 discover={discover}
                 running={running}
+                boot={boot}
+                onProfile={() => go('profile')}
               />
             )}
             {page === 'resume' && (
@@ -617,6 +629,7 @@ export default function Workspace() {
               />
             )}
             {page === 'applications' && <Applications act={act} busy={busy} />}
+            {page === 'alerts' && <AlertsView />}
             {page === 'profile' && (
               <ProfileView
                 profile={boot.profile}
@@ -809,302 +822,6 @@ function OverviewView({
     </>
   )
 }
-function Discover({
-  act,
-  busy,
-  discover,
-  running,
-}: {
-  act: Action
-  busy: boolean
-  discover: () => void
-  running: boolean
-}) {
-  const [jobs, setJobs] = useState<Job[]>([]),
-    [total, setTotal] = useState(0),
-    [q, setQ] = useState(''),
-    [remote, setRemote] = useState(false),
-    [source, setSource] = useState(''),
-    [sources, setSources] = useState<Source[]>([]),
-    [coverageRuns, setCoverageRuns] = useState<Run[]>([]),
-    [webStatus, setWebStatus] = useState<{
-      configured: boolean
-      monthlyCap: number
-      maxRequestsPerRun: number
-      maxPagesPerQuery: number
-    } | null>(null),
-    [loading, setLoading] = useState(true),
-    [selected, setSelected] = useState<Job | null>(null)
-  const dialog = useRef<HTMLDialogElement>(null)
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await api<{ jobs: Job[]; total: number }>(
-        `/jobs?${new URLSearchParams({ q, remote: remote ? 'true' : '', source, limit: '100' })}`,
-      )
-      setJobs(data.jobs)
-      setTotal(data.total)
-    } finally {
-      setLoading(false)
-    }
-  }, [q, remote, source])
-  useEffect(() => {
-    const id = setTimeout(() => void act(load), 250)
-    return () => clearTimeout(id)
-  }, [load])
-  useEffect(() => {
-    void act(async () => {
-      const [data, history] = await Promise.all([
-        api<{ sources: Source[]; webDiscovery: typeof webStatus }>('/sources'),
-        api<{ runs: Run[] }>('/discovery/runs'),
-      ])
-      setSources(data.sources)
-      setWebStatus(data.webDiscovery)
-      setCoverageRuns(history.runs)
-    })
-  }, [running])
-  useEffect(() => {
-    if (selected) dialog.current?.showModal()
-  }, [selected])
-  async function save(job: Job) {
-    await api('/applications', 'POST', { jobId: job.id, status: 'saved' })
-    await load()
-    setSelected((current) => (current?.id === job.id ? { ...current, status: 'saved' } : current))
-  }
-  return (
-    <>
-      <Heading
-        eyebrow="OPEN DOORS. REAL POSSIBILITIES."
-        title="Find work that fits you."
-        description="Search your connected feeds, company boards and configured web index, ranked against your preferences."
-      >
-        <Button primary onClick={discover} disabled={busy || running}>
-          {running ? <LoaderCircle size={16} className="ws-spin" /> : <Sparkles size={16} />}{' '}
-          {running ? 'Searching sources…' : 'Discover new roles'}
-        </Button>
-      </Heading>
-      <form className="ws-searchbar" onSubmit={(e) => e.preventDefault()}>
-        <label>
-          <Search size={20} />
-          <input
-            aria-label="Search role, company or keyword"
-            placeholder="Role, company, or a little inspiration…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </label>
-        <select
-          aria-label="Filter source"
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-        >
-          <option value="">All sources</option>
-          {sources.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <label className="ws-check">
-          <input type="checkbox" checked={remote} onChange={(e) => setRemote(e.target.checked)} />{' '}
-          Remote only
-        </label>
-      </form>
-      <details className="ws-coverage">
-        <summary>Connected sources &amp; search coverage</summary>
-        <p>
-          {webStatus?.configured
-            ? `Web index connected: up to ${webStatus.maxRequestsPerRun} searches per run, ${webStatus.maxPagesPerQuery} pages per role/location query, and ${webStatus.monthlyCap} shared searches per month.`
-            : 'The web index is not connected. Enabled feeds and employer career sources still work. An administrator can connect the free web-search provider to discover more employer links.'}{' '}
-          No index covers every job. Remote does not guarantee eligibility in your country. Missing
-          salary and company size stay unknown.
-        </p>
-        {coverageRuns[0]?.coverage?.map((item) => (
-          <div key={item.source}>
-            <strong>Latest run · {item.name}</strong>
-            <span>
-              {item.status} · {item.pages} pages · {item.jobs} collected · {item.omittedQueries}{' '}
-              queries omitted
-            </span>
-            {item.queries.length > 0 && (
-              <ul>
-                {item.queries.map((query) => (
-                  <li key={query}>{query}</li>
-                ))}
-              </ul>
-            )}
-            <p>{item.note}</p>
-            {item.checks && (
-              <details>
-                <summary>Employer checks ({item.checks.length})</summary>
-                <ul>
-                  {item.checks.map((check, i) => (
-                    <li key={`${check.name}-${i}`}>
-                      <strong>{check.name}</strong> · {check.status} · {check.jobs} collected
-                      <p>{check.note}</p>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-          </div>
-        ))}
-        {sources.map((s) => (
-          <div key={s.id}>
-            <strong>{s.name}</strong>
-            <span>
-              {s.enabled ? 'Enabled' : 'Paused'} · {s.jobCount} roles in the last source check ·{' '}
-              {date(s.lastRun)}
-            </span>
-            {s.lastError && <p className="ws-error">Last check failed: {s.lastError}</p>}
-          </div>
-        ))}
-      </details>
-      <div className="ws-list-heading">
-        <span>
-          {loading
-            ? 'Refreshing opportunities…'
-            : `${total} opportunities${total > 100 ? ' · showing first 100' : ''}`}
-        </span>
-        <span>Ranked by preference fit</span>
-      </div>
-      {!loading && !jobs.length ? (
-        <Empty title="Your next opportunity is out there.">
-          <p>Run discovery to collect openings, or broaden your search filters.</p>
-          <p>
-            Choose your interests in Search & profile, then run your first discovery. This list
-            starts empty for each account. Only configured sources can be searched.
-          </p>
-          <Button onClick={discover} disabled={busy || running}>
-            Search connected sources <ArrowRight size={16} />
-          </Button>
-        </Empty>
-      ) : (
-        <div className="ws-job-grid">
-          {jobs.map((job) => (
-            <article key={job.id} className="ws-panel ws-job-card">
-              <div className="ws-job-top">
-                <span className="ws-company-avatar">{job.company.slice(0, 2)}</span>
-                <div>
-                  <strong>{job.company}</strong>
-                  <small>
-                    {job.via ||
-                      sources.find((s) => s.id === job.source)?.name ||
-                      'Previously connected source'}
-                  </small>
-                </div>
-                <button
-                  aria-label={job.status ? `${job.title} is tracked` : `Save ${job.title}`}
-                  className={`ws-icon-button ${job.status ? 'is-saved' : ''}`}
-                  disabled={busy || !!job.status}
-                  onClick={() =>
-                    void act(() => save(job), 'Opportunity saved to your applications.')
-                  }
-                >
-                  <Bookmark size={19} fill={job.status ? 'currentColor' : 'none'} />
-                </button>
-              </div>
-              <button className="ws-job-title" onClick={() => setSelected(job)}>
-                {job.title}
-              </button>
-              <p className="ws-muted">{job.location || 'Location not specified'}</p>
-              <div className="ws-tags">
-                <span>{job.remote ? 'Remote' : 'Location based'}</span>
-                <span>
-                  {job.salaryMin !== null
-                    ? `${job.currency || ''} ${job.salaryMin.toLocaleString()}${job.salaryMax ? ` – ${job.salaryMax.toLocaleString()}` : ''}`
-                    : 'Salary not listed'}
-                </span>
-              </div>
-              <div className="ws-job-bottom">
-                <span className="ws-match">{job.matchScore}% preference fit</span>
-                <button onClick={() => setSelected(job)}>
-                  View role <ArrowUpRight size={16} />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-      <dialog
-        ref={dialog}
-        className="ws-dialog"
-        aria-label="Job details"
-        onClose={() => setSelected(null)}
-      >
-        {selected && (
-          <>
-            <button
-              className="ws-dialog-close ws-icon-button"
-              aria-label="Close job details"
-              onClick={() => dialog.current?.close()}
-            >
-              <X />
-            </button>
-            <p className="ws-eyebrow">
-              {selected.company} ·{' '}
-              {sources.find((s) => s.id === selected.source)?.name || 'Previously connected source'}
-            </p>
-            <h2>{selected.title}</h2>
-            <p className="ws-muted">
-              {selected.location} · {selected.remote ? 'Remote' : 'Location based'}
-            </p>
-            <div className="ws-fit-box">
-              <strong>{selected.matchScore}% preference fit</strong>
-              <ul>
-                {selected.matchReasons.map((reason, i) => (
-                  <li key={i}>{reason}</li>
-                ))}
-              </ul>
-              <small>This is a preference match, not a hiring prediction.</small>
-            </div>
-            {selected.via && (
-              <p className="ws-muted">
-                Indexed via {selected.via}. Confirm the opening and eligibility on the application
-                site.
-              </p>
-            )}
-            {Boolean(selected.applyLinks?.length) && (
-              <div className="ws-tags">
-                {selected.applyLinks!.map((link) => (
-                  <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">
-                    Apply via {link.name} <ArrowUpRight size={14} />
-                  </a>
-                ))}
-              </div>
-            )}
-            <div className="ws-description">{selected.description}</div>
-            <p className="ws-muted">
-              Posted: {selected.postedAt ? date(selected.postedAt) : 'Not listed'} · Collected:{' '}
-              {date(selected.fetchedAt)}
-            </p>
-            <div className="ws-row">
-              <Button
-                onClick={() => void act(() => save(selected), 'Saved to your application tracker.')}
-                disabled={busy || !!selected.status}
-              >
-                {selected.status ? 'Already tracked' : 'Save opportunity'}
-              </Button>
-              <a
-                className="ws-button ws-primary"
-                href={selected.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open original application <ArrowUpRight size={16} />
-              </a>
-            </div>
-            <small className="ws-muted">
-              Opening the application does not submit it. Mark it as applied in your tracker after
-              you submit.
-            </small>
-          </>
-        )}
-      </dialog>
-    </>
-  )
-}
-
 function ResumeStudio({
   act,
   busy,
@@ -1709,6 +1426,25 @@ function ProfileView({
       clearTimeout(timer)
     }
   }, [draft.roles, draft.skills, draft.locations, draft.experienceLevels])
+  useEffect(() => {
+    setDraft({
+      ...profile,
+      experienceLevels: profile.experienceLevels?.length
+        ? profile.experienceLevels
+        : profile.experience
+          ? [profile.experience]
+          : [],
+    })
+  }, [
+    profile.name,
+    profile.email,
+    profile.phone,
+    profile.website,
+    profile.linkedin,
+    profile.location,
+    JSON.stringify(profile.skills),
+    JSON.stringify(profile.roles),
+  ])
   function field<K extends keyof Profile>(key: K, value: Profile[K]) {
     setDraft((old) => ({ ...old, [key]: value }))
   }
@@ -1733,6 +1469,9 @@ function ProfileView({
           Open quick setup <ArrowRight size={16} />
         </Button>
       </Heading>
+      <section className="ws-panel">
+        <ResumeIntake onApplied={onSaved} />
+      </section>
       <form onSubmit={submit} className="ws-profile-form">
         <section className="ws-panel">
           <div className="ws-section-top">

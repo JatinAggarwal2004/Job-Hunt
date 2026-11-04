@@ -1,3 +1,4 @@
+import { employerDeadline } from './deadlines.ts'
 import type { Source, Job, Profile, SearchCoverage } from '../shared/types.ts'
 import { createHash } from 'node:crypto'
 import { hasSkill } from './resume.ts'
@@ -95,6 +96,10 @@ async function collectPage(
           : null
     return [
       {
+        deadlineAt: employerDeadline(
+          j.validThrough || j.valid_through || j.applicationDeadline,
+          clean(j.descriptionPlain || j.description || j.content || j.descriptionHtml),
+        ),
         id: createHash('sha256').update(canonicalJobUrl(url)).digest('hex').slice(0, 24),
         title,
         company,
@@ -179,6 +184,13 @@ export function match(
   let score = 0
   let possible = 0
   let eligible = true
+  if (
+    job.deadlineAt &&
+    Date.parse(job.deadlineAt) + (job.deadlineAt.length === 10 ? 86400000 : 0) <= Date.now()
+  ) {
+    eligible = false
+    reasons.push('Employer-supplied expiry has passed')
+  }
   if (profile.roles.length) {
     possible += 40
     const hits = profile.roles.filter((r) => roleMatches(job.title, r))

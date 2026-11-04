@@ -1,3 +1,4 @@
+import { employerDeadline } from './deadlines.ts'
 import { createHash } from 'node:crypto'
 import { decodeHTML } from 'entities'
 import type { Source } from '../shared/types.ts'
@@ -95,6 +96,7 @@ export function structuredJobs(
         const id = createHash('sha256').update(url).digest('hex').slice(0, 24)
         jobs.set(id, {
           id,
+          deadlineAt: employerDeadline(item.validThrough),
           title,
           company,
           location,

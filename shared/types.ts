@@ -2,6 +2,7 @@ import type { SetupState } from './onboarding.ts'
 import type { Entitlements } from './billing.ts'
 export type Page =
   | 'setup'
+  | 'alerts'
   | 'overview'
   | 'discover'
   | 'resume'
@@ -40,6 +41,7 @@ export type Profile = {
   timezone: string
 }
 export type Job = {
+  deadlineAt?: string | null
   via?: string
   applyLinks?: { name: string; url: string }[]
   available?: boolean
@@ -152,6 +154,7 @@ export type Settings = {
   aiConsentRequired?: boolean
 }
 export type Bootstrap = {
+  semantic?: { enabled: boolean; model: string; revision: string; state: string }
   onboarding?: SetupState
   activity?: { enabled: boolean; retentionDays: number }
   entitlements: Entitlements
