@@ -394,3 +394,29 @@ test('an unavailable semantic model never presents unrelated candidate passages 
     await backend.close()
   }
 })
+test('a failed search-index replacement preserves the previous searchable evidence atomically', async () => {
+  const { backend, insert } = await fixture()
+  try {
+    const saved = insert(job)
+    const old = backend.db.prepare('SELECT body FROM job_chunks WHERE job_id=?').all(job.id)
+    backend.db.exec(
+      "CREATE TEMP TRIGGER fail_fixture_index BEFORE INSERT ON job_chunk_meta BEGIN SELECT RAISE(ABORT,'Fixture storage failure'); END",
+    )
+    assert.throws(
+      () => backend.retrieval.index({ ...saved, description: 'A changed description.' }),
+      /Fixture storage failure/,
+    )
+    assert.deepEqual(
+      backend.db.prepare('SELECT body FROM job_chunks WHERE job_id=?').all(job.id),
+      old,
+    )
+    backend.db.exec('DROP TRIGGER fail_fixture_index')
+    backend.retrieval.index({ ...saved, description: 'A changed description.' })
+    assert.equal(
+      (backend.db.prepare('SELECT body FROM job_chunks WHERE job_id=?').get(job.id) as any).body,
+      'A changed description.',
+    )
+  } finally {
+    await backend.close()
+  }
+})

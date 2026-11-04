@@ -16,16 +16,31 @@ export function createRetrieval(db: DatabaseSync) {
       hash
     )
       return
-    db.prepare('DELETE FROM job_chunks WHERE job_id=?').run(job.id)
-    const insert = db.prepare('INSERT INTO job_chunks(job_id,ordinal,title,body) VALUES(?,?,?,?)')
-    for (const [i, text] of passages(job.description).entries())
-      insert.run(job.id, i, job.title, text)
-    db.prepare(
-      'INSERT INTO job_chunk_meta VALUES(?,?) ON CONFLICT(job_id) DO UPDATE SET hash=excluded.hash',
-    ).run(job.id, hash)
+    db.exec('SAVEPOINT job_index')
+    try {
+      db.prepare('DELETE FROM job_chunks WHERE job_id=?').run(job.id)
+      const insert = db.prepare('INSERT INTO job_chunks(job_id,ordinal,title,body) VALUES(?,?,?,?)')
+      for (const [i, text] of passages(job.description).entries())
+        insert.run(job.id, i, job.title, text)
+      db.prepare(
+        'INSERT INTO job_chunk_meta VALUES(?,?) ON CONFLICT(job_id) DO UPDATE SET hash=excluded.hash',
+      ).run(job.id, hash)
+      db.exec('RELEASE job_index')
+    } catch (error) {
+      db.exec('ROLLBACK TO job_index; RELEASE job_index')
+      throw error
+    }
   }
   // Index public job text, never resumes/contact details. Ownership is enforced at retrieval time.
-  for (const row of db.prepare('SELECT data FROM jobs').all() as any[]) index(JSON.parse(row.data))
+  db.exec('SAVEPOINT job_backfill')
+  try {
+    for (const row of db.prepare('SELECT data FROM jobs').iterate() as Iterable<{ data: string }>)
+      index(JSON.parse(row.data))
+    db.exec('RELEASE job_backfill')
+  } catch (error) {
+    db.exec('ROLLBACK TO job_backfill; RELEASE job_backfill')
+    throw error
+  }
   const retrieve = (
     userId: string,
     question: string,

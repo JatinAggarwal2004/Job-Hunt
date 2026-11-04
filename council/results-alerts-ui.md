@@ -26,3 +26,5 @@ Blind spots: security — secret scan0 plus cross-account tests; money — no pa
 LOCAL GREEN FLAG. Accepted residual limits: bounded candidate/chunk retrieval and uncalibrated scoring, English model limitations, free-host delayed reminders, at-least-once mail retry semantics. Hosted Linux inference and deployment remain a separate verification gate after push; no hosted success claimed here.
 
 Pagination polish follow-up: CUA exposed a usability gap when changing pages at the bottom of a long grid. Next/Previous now scroll and focus the results heading without animation. Final complete npm run check93/93 pass; CUA25 actual page2 showed37–72/145, heading focused at viewport top100px. Re-reviewed same ownership/bounds/rollback checks, no API/data/provider change. GREEN FLAG for this follow-up.
+
+Re-reviewed after startup indexing/image-ownership fix: full npm run check94/94; source eligibility, pagination, reminders and auth contracts unchanged. Hosted gate is still pending final Linux rollout.
