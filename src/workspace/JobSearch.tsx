@@ -54,7 +54,8 @@ export function Discover({
     [selected, setSelected] = useState<Job | null>(null),
     [tab, setTab] = useState<'overview' | 'resume' | 'deadline'>('overview')
   const requestNumber = useRef(0),
-    dialog = useRef<HTMLDialogElement>(null)
+    dialog = useRef<HTMLDialogElement>(null),
+    resultsHeading = useRef<HTMLHeadingElement>(null)
   const load = useCallback(async () => {
     const request = ++requestNumber.current
     setLoading(true)
@@ -95,6 +96,11 @@ export function Discover({
   useEffect(() => {
     if (selected) dialog.current?.showModal()
   }, [selected?.id])
+  const turnPage = (value: number) => {
+    setOffset(value)
+    resultsHeading.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+    resultsHeading.current?.focus({ preventScroll: true })
+  }
   const filter = (action: () => void) => {
     setOffset(0)
     action()
@@ -245,7 +251,7 @@ export function Discover({
             </div>
           )}
           <div className="jh-results-heading">
-            <h2>
+            <h2 ref={resultsHeading} tabIndex={-1}>
               {loading ? 'Updating matches…' : `${total.toLocaleString()} matching opportunities`}
             </h2>
             <span>
@@ -346,7 +352,7 @@ export function Discover({
             <button
               className="ws-button"
               disabled={loading || offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - pageSize))}
+              onClick={() => turnPage(Math.max(0, offset - pageSize))}
             >
               <ArrowLeft size={15} /> Previous
             </button>
@@ -358,7 +364,7 @@ export function Discover({
               className="ws-button"
               disabled={loading || next === null}
               onClick={() => {
-                if (next !== null) setOffset(next)
+                if (next !== null) turnPage(next)
               }}
             >
               Next <ArrowRight size={15} />
