@@ -79,10 +79,13 @@ test('generation uses a structured source enum, validates inline citations and l
       () => run('u', 'Which Java jobs?', context, settings, true),
       /usable cited/,
     )
-    assert.deepEqual(body.generationConfig.responseJsonSchema.properties.citations.items.enum, [
-      'S1',
-    ])
+    assert.deepEqual(
+      body.generationConfig.responseFormat.text.schema.properties.citations.items.enum,
+      ['S1'],
+    )
     assert.ok(!JSON.stringify(body).includes('recruitment@example.test'))
+    assert.equal(body.generationConfig.temperature, undefined)
+    assert.equal(body.generationConfig.responseFormat.text.mimeType, 'APPLICATION_JSON')
     const extra = {
       ...context,
       evidence: Array.from({ length: 8 }, (_, i) => ({

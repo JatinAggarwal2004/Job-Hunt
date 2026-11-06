@@ -4,16 +4,16 @@ The assistant can now pass account-scoped retrieval results to a configured lang
 
 ## Free public-job connection
 
-Use a dedicated Gemini project with **Free tier and no linked billing account**. The verified Job-Hunt project exposes `gemini-2.5-flash-lite` at10 requests/minute,250K input tokens/minute and20 requests/day as of6 November2026. These account quotas can change. The app's shared daily cap is set to18 attempts, alongside the existing per-account allowance. Requests beyond either cap return source excerpts; the app never upgrades the account or retries with a paid provider.
+Use a dedicated Gemini project with **Free tier and no linked billing account**. The verified Job-Hunt project exposes `gemini-3.5-flash-lite` at15 requests/minute,250K input tokens/minute and500 requests/day as of6 November2026. These account quotas can change. The app's shared daily cap is set to100 attempts, alongside the existing per-account allowance. Requests beyond either cap return source excerpts; the app never upgrades the account or retries with a paid provider.
 
-[Google pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-2.5-flash-lite) and [billing](https://ai.google.dev/gemini-api/docs/billing) describe the free tier. [Unpaid-service data terms](https://ai.google.dev/gemini-api/terms#data-use-unpaid) allow prompts/outputs to be reviewed and used for product improvement and say not to submit personal, confidential or sensitive information. This deployment therefore uses the connection only for public job questions. Resume extraction, review and MiniLM comparisons stay on the app server.
+[Google pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite) and [billing](https://ai.google.dev/gemini-api/docs/billing) describe the free tier. [Unpaid-service data terms](https://ai.google.dev/gemini-api/terms#data-use-unpaid) allow prompts/outputs to be reviewed and used for product improvement and say not to submit personal, confidential or sensitive information. This deployment therefore uses the connection only for public job questions. Resume extraction, review and MiniLM comparisons stay on the app server.
 
 Server variables:
 
 - `AI_GEMINI_API_KEY`: private credential, never a Vite variable or an admin form value.
-- `ENABLE_HOSTED_AI=true` and `AI_GEMINI_MODEL=gemini-2.5-flash-lite`: approve the exact model.
+- `ENABLE_HOSTED_AI=true` and `AI_GEMINI_MODEL=gemini-3.5-flash-lite`: approve the exact model.
 - `AI_GEMINI_PUBLIC_JOBS_ONLY=true`: disables hosted resume wording, rejects contact details/common personal-document requests in questions and strips contacts/URLs from outgoing source text. This is not a complete detector of sensitive information; users must keep such information out.
-- `RAG_DAILY_SHARED_LIMIT=18`: persistent shared attempt cap (hard application ceiling100). API failures consume an attempt. Provider resets and the app's UTC day may differ; provider429 responses retain retrieval.
+- `RAG_DAILY_SHARED_LIMIT=100`: persistent shared attempt cap (hard application ceiling100). API failures consume an attempt. Provider resets and the app's UTC day may differ; provider429 responses retain retrieval.
 
 In Admin studio choose Gemini, enter the same approved model, set the per-account allowance and enable connected AI features. Existing profile/source/membership controls are retained. In Discover roles choose **Use AI to explain the retrieved jobs**, review the free-tier disclosure, consent for that request and choose **Explain my matches**. Entitlement checks still apply. The server reports public-job RAG availability separately from resume-writing availability.
 
@@ -32,3 +32,5 @@ Set `ENABLE_HOSTED_AI=false` or disable connected AI in Admin; original semantic
 ## Operator verification
 
 `npm run verify:rag` runs the built diagnostic with private server environment variables. It requires the verified bootstrap admin and the approved public-only Gemini configuration. It reuses the production ownership/eligibility, lexical retrieval, MiniLM reranking and generation modules, consumes one normal shared/per-account request reservation, and prints only a generated public-job answer with source IDs. `node --max-old-space-size=128 build/server/verify-rag.mjs --unknowns` checks how absent salary/deadline evidence is reported. It creates no session/account and never reads resumes. It needs existing operator access to the service; it is not a public endpoint. Run only with approved free quota; both commands can send a real request. A browser consent/citation test remains useful for verifying the signed-in UI separately.
+
+Live activation correction: the quota page still listed2.5Flash-Lite, and model metadata returned200, but actual generation returned404 saying it is no longer available to new users. Switched to the verified Free3.5Flash-Lite allowance rather than retrying a retired model. Model metadata alone is not proof generation works.

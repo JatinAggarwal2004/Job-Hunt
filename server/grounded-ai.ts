@@ -100,22 +100,25 @@ export function createGroundedGeneration(
                   systemInstruction: { parts: [{ text: instruction }] },
                   contents: [{ role: 'user', parts: [{ text: JSON.stringify(input) }] }],
                   generationConfig: {
-                    temperature: 0.1,
                     maxOutputTokens: 1000,
-                    responseMimeType: 'application/json',
-                    responseJsonSchema: {
-                      type: 'object',
-                      properties: {
-                        answer: { type: 'string' },
-                        citations: {
-                          type: 'array',
-                          items: { type: 'string', enum: input.evidence.map((e) => e.id) },
-                          minItems: 1,
-                          maxItems: 6,
+                    responseFormat: {
+                      text: {
+                        mimeType: 'APPLICATION_JSON',
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            answer: { type: 'string' },
+                            citations: {
+                              type: 'array',
+                              items: { type: 'string', enum: input.evidence.map((e) => e.id) },
+                              minItems: 1,
+                              maxItems: 6,
+                            },
+                          },
+                          required: ['answer', 'citations'],
+                          additionalProperties: false,
                         },
                       },
-                      required: ['answer', 'citations'],
-                      additionalProperties: false,
                     },
                   },
                 }
