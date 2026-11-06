@@ -14,16 +14,16 @@ Architect rejects sending resumes after a generic consent checkbox because the f
 ## CHECKS
 |#|Check|Verification|Result|
 |---|---|---|---|
-|1|Build/run|npm run check client/server/types/format/API suite|PENDING|
-|2|Normal|Actual cited answer from retrieved public job evidence; mock structural tests|PENDING|
-|3|Edges|Empty/foreign/unknown citations, no context, malformed output, safety block|PENDING|
-|4|Errors|Quota/provider failures retain labelled source excerpts|PENDING|
-|5|Security|Key never in files/client/logs; account ownership, explicit consent, public-only resume block|PENDING|
-|6|Bounded cost/complexity|Verified project Free/no billing; shared/day and per-account caps,6 excerpts, output/body/timeout bounds|PENDING|
-|7|Readability|Dedicated budget/privacy/generation modules; current UI components reused|PENDING|
-|8|User advocate|CUA consent → generated answer → cited source; privacy copy; fallback|PENDING|
-|9|Regression|Existing resume/MiniLM, account, membership and discovery tests pass; no new discovery scans|PENDING|
-|10|Rollback|Hosted flag off keeps original retrieval; additive usage table; existing profile unchanged|PENDING|
+|1|Build/run|npm run check client/server/types/format/API suite|PASS — npm run check after final fixes:100/100 API tests, client/server/operator builds, types and format. Runtime audit0.|
+|2|Normal|Actual cited answer from retrieved public job evidence; mock structural tests|PASS — actual production-module probe:HTTP200 STOP, gemini-3.5-flash-lite, answer with5 valid supplied source IDs; saved production-generated-answer.png. Authenticated route additionally exercised in local integration.|
+|3|Edges|Empty/foreign/unknown citations, no context, malformed output, safety block|PASS — tests cover empty/foreign context, missing consent, unknown inline/unsent IDs, malformed/empty/oversized JSON and safety-block responses; no unsupported answer shown.|
+|4|Errors|Quota/provider failures retain labelled source excerpts|PASS — simulated HTTP429 in CUA3009 returned labelled source excerpts. Actual retired-model404 diagnosed; switched verified Free model and re-tested successfully.|
+|5|Security|Key never in files/client/logs; account ownership, explicit consent, public-only resume block|PASS after credential correction — unused first key appeared in tool output, was explicitly approved for revocation and deleted; replacement only in private Railway variable, no file/client output.139 tracked-file pattern scan0; ownership/consent/public-only resume block tested.|
+|6|Bounded cost/complexity|Verified project Free/no billing; shared/day and per-account caps,6 excerpts, output/body/timeout bounds|PASS — actual projectFree/no billing;3.5 quota15RPM/250KTPM/500RPD. Runtime cap100; persisted attemptsToday3 across deploys,2 retired-model failures plus1 success. Context6,1000-token/body/timeout bounds remain.|
+|7|Readability|Dedicated budget/privacy/generation modules; current UI components reused|PASS — dedicated privacy/generation modules and scoped operator probe; no added runtime package. Strict scripts type-check included.|
+|8|User advocate|CUA consent → generated answer → cited source; privacy copy; fallback|PASS — CUA3009 consent disabled submission until checked, generated fixture answer plus source[S1], provider-error fallback and privacy disclosure. Hosted browser still signed out, so hosted UI generation is not claimed verified.|
+|9|Regression|Existing resume/MiniLM, account, membership and discovery tests pass; no new discovery scans|PASS —100-test full suite retains resume/MiniLM, ownership, billing, discovery contracts; no manual discovery scan or resume sent for generation.|
+|10|Rollback|Hosted flag off keeps original retrieval; additive usage table; existing profile unchanged|PASS — hosted opt-in or Admin disable returns retrieval; only additive usage table. Operator enabled only model/provider/AI flag and preserved other settings; no accounts or sessions created.|
 
 ## Local pre-deployment evidence
 `npm run check`:99/99 API checks, both builds/types/format pass. `npm audit --omit=dev`:0. CUA isolated3009: generation checkbox reveals free-tier disclosure; submit remains disabled until per-request consent; generated fixture answer shows[S1]; simulated provider429 returns labelled source excerpts. No live provider called by fixture. New tests cover private-question rejection, contact/URL stripping, schema source enum, unknown inline/unsent IDs, shared caps across accounts/instances, empty context no-call, free-mode hosted-resume block, actual authenticated generated route/foreign404/fallback.
@@ -36,3 +36,7 @@ Operator probe local verification: full npm run check99/99 re-passed, including 
 Live round1/2: first actual pipeline503; credential metadata200. A diagnostic second approved generation showed404 NOT_FOUND:2.5Flash-Lite unavailable to new users despite quota-list entry. Replacement3.5Flash-Lite has actual Free15RPM/250KTPM/500RPD and published free text pricing; switch exactapproved model to3.5 and sharedcap100 (hard app ceiling, below500 quota), without billing/newkey. Two approved generation attempts used, one remains. No success claimed yet; re-run full table after correction.
 
 3.5 compatibility review: actual model metadata returns200 and supports generateContent. Official current structured-output guide documents generationConfig.responseFormat.text with APPLICATION_JSON/schema; updated from legacy responseJsonSchema and removed deprecated hosted temperature (3.5 ignores it). Lite's default minimal thinking retained. Unit assertions cover new REST schema, allowed citation enum and absence of deprecated temperature. Re-run complete99 checks before deploying; only third approved generation will be attempted afterward.
+
+## Final verdict —6 November2026
+Rounds:3 activation reviews (local guards, actual retired-model failure, successful current-model correction). Complete final table re-reviewed after fixes. Blind spots: security—first unused credential revoked, replacement private and scan0; money—verified Free/no billing and bounded calls; user impact—disclosure/explicitconsent and retrieval fallback; rollback—hosted flag/Adminoff; edges—safety/malformed/privacy/foreign/quotas exercised; dependencies—no new runtime dependency and audit0.
+FINAL GREEN within beta scope: real hosted retrieval→semantic ranking→Gemini generation→validated citations works. Accepted residuals: hosted browser login remains unverified in the controlled session, so UI proof is local; citation presence does not prove factual entailment; free tier may throttle/change and may use public prompts for improvement. Exactly3 approved generation attempts made, no further model calls. Resumes remain local. Actual operator result/settings/usage screenshots saved privately under artifacts/generative-rag.

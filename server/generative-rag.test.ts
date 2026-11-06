@@ -231,3 +231,28 @@ test('authenticated RAG generates from owned matches and retains source evidence
     await backend.close()
   }
 })
+test('blocked, malformed and oversized generation responses fail recoverably without displaying invented answers', async () => {
+  const db = database()
+  try {
+    for (const body of [
+      JSON.stringify({ candidates: [{ finishReason: 'SAFETY' }] }),
+      'not valid provider JSON',
+      JSON.stringify({
+        candidates: [{ content: { parts: [{ text: '{"answer":"","citations":["S1"]}' }] } }],
+      }),
+      'x'.repeat(100001),
+    ]) {
+      const run = createGroundedGeneration(
+        db,
+        { ...env, RAG_DAILY_SHARED_LIMIT: '10' },
+        (async () => new Response(body)) as typeof fetch,
+      )
+      await assert.rejects(
+        () => run('a', 'Java jobs?', context, settings, true),
+        (error: any) => error.status === 503 && error.recoverable === true,
+      )
+    }
+  } finally {
+    db.close()
+  }
+})
