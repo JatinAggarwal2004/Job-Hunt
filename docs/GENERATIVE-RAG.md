@@ -28,3 +28,7 @@ Generation has2 in-flight requests maximum, a45-second request timeout,100KB res
 ## Disable or roll back
 
 Set `ENABLE_HOSTED_AI=false` or disable connected AI in Admin; original semantic/extractive retrieval remains. The `rag_daily_usage` table is additive. Do not link billing unless the owner explicitly changes the budget and data-processing plan. Check actual account eligibility/quotas before changing the model. No generation activation is claimed solely because a key variable exists: verify a real hosted cited answer after deployment.
+
+## Operator verification
+
+`npm run verify:rag` runs the built diagnostic with private server environment variables. It requires the verified bootstrap admin and the approved public-only Gemini configuration. It reuses the production ownership/eligibility, lexical retrieval, MiniLM reranking and generation modules, consumes one normal shared/per-account request reservation, and prints only a generated public-job answer with source IDs. `node --max-old-space-size=128 build/server/verify-rag.mjs --unknowns` checks how absent salary/deadline evidence is reported. It creates no session/account and never reads resumes. It needs existing operator access to the service; it is not a public endpoint. Run only with approved free quota; both commands can send a real request. A browser consent/citation test remains useful for verifying the signed-in UI separately.
