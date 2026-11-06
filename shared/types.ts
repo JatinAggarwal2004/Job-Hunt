@@ -164,5 +164,11 @@ export type Bootstrap = {
   profile: Profile
   overview: Overview
   settings: Settings
-  ai: { available: boolean; model: string; message: string }
+  ai: {
+    available: boolean
+    ragAvailable?: boolean
+    publicJobsOnly?: boolean
+    model: string
+    message: string
+  }
 }

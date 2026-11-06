@@ -129,7 +129,9 @@ export function Discover({
       <div className="jh-search-layout">
         <aside className="jh-search-aside">
           <SearchAssistant
-            aiAvailable={!!boot.ai.available && !!boot.entitlements.canUseAi}
+            aiAvailable={
+              !!(boot.ai.ragAvailable ?? boot.ai.available) && !!boot.entitlements.canUseAi
+            }
             provider={boot.settings.aiProvider || 'ollama'}
             onOpen={async (id) => {
               try {
@@ -513,6 +515,7 @@ function SearchAssistant({
     [consent, setConsent] = useState(false)
   const ask = async (value: string) => {
     setQuestion(value)
+    setResult(null)
     setBusy(true)
     setError('')
     try {
@@ -568,7 +571,7 @@ function SearchAssistant({
           <>
             <label className="ws-check">
               <input type="checkbox" checked={ai} onChange={(e) => setAi(e.target.checked)} /> Use
-              connected AI for an explanation
+              AI to explain the retrieved jobs
             </label>
             {ai && provider === 'gemini' && (
               <label className="ws-check">
@@ -577,14 +580,16 @@ function SearchAssistant({
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                 />{' '}
-                Send this question and retrieved job excerpts to Google for this request.
+                Send this question and public job excerpts to Google for this request. Free-tier
+                content may be reviewed and used to improve products. Keep personal or confidential
+                information out; resumes stay local.
               </label>
             )}
           </>
         )}
         <button className="ws-button" disabled={busy || (ai && provider === 'gemini' && !consent)}>
-          {busy ? <LoaderCircle className="ws-spin" size={15} /> : <Search size={15} />} Find
-          evidence
+          {busy ? <LoaderCircle className="ws-spin" size={15} /> : <Search size={15} />}{' '}
+          {busy ? 'Reading job evidence…' : ai ? 'Explain my matches' : 'Find evidence'}
         </button>
       </form>
       {error && (

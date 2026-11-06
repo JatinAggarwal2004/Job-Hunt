@@ -884,7 +884,20 @@ export function createApp(
         }
       if (useAi) {
         billing.guard(uid(req), 'ai')
-        res.json(await groundedGeneration(uid(req), question, context, getSettings(), consent))
+        try {
+          res.json(await groundedGeneration(uid(req), question, context, getSettings(), consent))
+        } catch (error) {
+          const status = (error as { status?: number }).status
+          if (
+            status !== 429 &&
+            !(status === 503 && (error as { recoverable?: boolean }).recoverable)
+          )
+            throw error
+          res.json({
+            ...context,
+            notice: `${(error as Error).message} Showing retrieved source excerpts instead. ${context.notice}`,
+          })
+        }
       } else res.json(context)
     }),
   )

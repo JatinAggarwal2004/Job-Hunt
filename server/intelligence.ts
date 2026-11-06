@@ -38,10 +38,14 @@ export function createIntelligence(
         !!model &&
         model === env.AI_GEMINI_MODEL
       return {
-        available: configured,
+        available: configured && env.AI_GEMINI_PUBLIC_JOBS_ONLY !== 'true',
+        ragAvailable: configured,
+        publicJobsOnly: env.AI_GEMINI_PUBLIC_JOBS_ONLY === 'true',
         model,
         message: configured
-          ? 'Gemini is configured. AI drafts send your text to Google only after your consent.'
+          ? env.AI_GEMINI_PUBLIC_JOBS_ONLY === 'true'
+            ? 'Gemini public-job answers are configured. Resume processing stays local; the free connection does not accept resume text.'
+            : 'Gemini is configured. AI drafts send your text to Google only after your consent.'
           : 'Configure the server Gemini key, approved model and ENABLE_HOSTED_AI before hosted writing can run. Document checks still work.',
       }
     }
@@ -87,6 +91,11 @@ export function createIntelligence(
       (env.ENABLE_HOSTED_AI !== 'true' || !env.AI_GEMINI_API_KEY || model !== env.AI_GEMINI_MODEL)
     )
       throw new AiError(503, 'Hosted AI has not been enabled with an approved server model.')
+    if (provider === 'gemini' && env.AI_GEMINI_PUBLIC_JOBS_ONLY === 'true')
+      throw new AiError(
+        503,
+        'This free connection accepts only public job questions. Resume reviews stay local in Resume fit.',
+      )
     if (provider === 'gemini' && !consent)
       throw new AiError(
         400,

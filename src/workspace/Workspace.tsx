@@ -472,14 +472,14 @@ export default function Workspace() {
         <div className="ws-sidebar-note">
           <span className="ws-small-dot" />
           <strong>
-            {boot.ai.available
-              ? 'Writing assistant connected'
+            {boot.ai.ragAvailable || boot.ai.available
+              ? 'Cited AI assistant connected'
               : boot.semantic?.enabled
                 ? 'Local semantic matching'
                 : 'Thoughtful, transparent tools'}
           </strong>
           <p>
-            {boot.ai.available
+            {boot.ai.ragAvailable || boot.ai.available
               ? boot.ai.model
               : boot.semantic?.enabled
                 ? 'MiniLM adds semantic evidence to your job search and resume reviews. Every edit stays your choice.'
@@ -2033,7 +2033,7 @@ function Admin({
                 checked={settings.aiEnabled}
                 onChange={(e) => setSettings({ ...settings, aiEnabled: e.target.checked })}
               />
-              Enable AI writing suggestions
+              Enable connected AI features
             </label>
           </div>
           <Button primary type="submit" disabled={busy}>
